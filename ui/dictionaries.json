@@ -1,0 +1,159 @@
+{
+  "AOV": {
+    "beauty": [
+      "Diffuse Lighting",
+      "Reflections",
+      "Specular Lighting",
+      "Refractions",
+      "Global Illumination",
+      "Shadows"
+    ],
+    "utility": [
+      "Cryptomatte",
+      "Cryptomatte",
+      "Depth"
+    ]
+  },
+  "OUTLINER_COLORS": {
+    "red": [
+      1.0,
+      0.210,
+      0.182
+    ],
+    "green": [
+      0.372,
+      0.762,
+      0.317
+    ],
+    "blue": [
+      0.156,
+      0.424,
+      1.0
+    ],
+    "yellow": [
+      1.0,
+      0.936,
+      0.182
+    ],
+    "purple": [
+      0.783,
+      0.557,
+      0.913
+    ],
+    "orange": [
+      1.0,
+      0.557,
+      0.156
+    ],
+    "default": [
+      0.7,
+      0.7,
+      0.7
+    ]
+  },
+  "RENDER_COLORS": {
+    "red": "Red",
+    "green": "Green",
+    "blue": "Blue",
+    "yellow": "Yellow",
+    "purple": "Violet",
+    "orange": "Orange",
+    "default": "No Color"
+  },
+  "BUTTON_ICONS": {
+    "render_button": {
+      "on": "icon_renderable_green.png",
+      "mid": "icon_renderable_yellow.png",
+      "off": "icon_renderable_off.png"
+    },
+    "frame_range_button": {
+      "on": "icon_frame_range_red.png",
+      "mid": "icon_frame_range_yellow.png",
+      "off": "icon_frame_range.png"
+    },
+    "resolution_button": {
+      "on": "icon_resolution_red.png",
+      "mid": "icon_resolution_yellow.png",
+      "off": "icon_resolution.png"
+    },
+    "visibility_button": {
+      "on": "icon_visibility_green.png",
+      "mid": "icon_visibility_yellow.png",
+      "off": "icon_visibility_off.png"
+    },
+    "aov_button": {
+      "on": "icon_aov_green.png",
+      "mid": "icon_aov_yellow.png",
+      "off": "icon_aov_off.png"
+    },
+    "aov_beauty_button": {
+      "on": "icon_aov_beauty_green.png",
+      "mid": "icon_aov_beauty_yellow.png",
+      "off": "icon_aov_beauty_off.png"
+    },
+    "aov_utility_button": {
+      "on": "icon_aov_utility_green.png",
+      "mid": "icon_aov_utility_yellow.png",
+      "off": "icon_aov_utility_off.png"
+    },
+    "delete_button": {
+      "default": "icon_delete.png"
+    },
+    "edit_button": {
+      "default": "icon_edit.png"
+    },
+    "layers_icon": {
+      "default": "icon_layers.png"
+    },
+    "color_button": {
+      "blue": "icon_color_blue.png",
+      "green": "icon_color_green.png",
+      "default": "icon_color_grey.png",
+      "orange": "icon_color_orange.png",
+      "purple": "icon_color_purple.png",
+      "red": "icon_color_red.png",
+      "yellow": "icon_color_yellow.png"
+    }
+  },
+  "TOOLTIPS": {
+    "render_button": {
+      "on": "Renderable.",
+      "mid": "Some layers are not renderable.",
+      "off": "Not renderable."
+    },
+    "frame_range_button": {
+      "on": "AOV mode is set to Enabled.",
+      "mid": "AOV mode differs for render layers.",
+      "off": "AOV mode is set to Disabled."
+    },
+    "visibility_button": {
+      "on": "Active layer.",
+      "mid": "One of the layers in this shot is active.",
+      "off": "Set as active."
+    },
+    "aov_button": {
+      "on": "AOV mode is set to Enabled.",
+      "mid": "AOV mode is set to Batch Only.",
+      "off": "AOV mode is set to Disabled."
+    },
+    "aov_beauty_button": {
+      "on": "Beauty AOVs are enabled.",
+      "mid": "Beauty AOVs are enabled for some layers and disabled for others.",
+      "off": "Beauty AOVs are disabled."
+    },
+    "aov_utility_button": {
+      "on": "Utility AOVs are enabled.",
+      "mid": "Utility AOVs are enabled for some layers and disabled for others.",
+      "off": "Utility AOVs are disabled."
+    },
+    "color_button": {
+      "blue": "Set shot color to blue.",
+      "green": "Set shot color to green.",
+      "default": "Remove shot color.",
+      "orange": "Set shot color to orange.",
+      "purple": "Set shot color to purple.",
+      "red": "Set shot color to red.",
+      "yellow": "Set shot color to yellow."
+    }
+  }
+}

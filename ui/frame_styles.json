@@ -1,0 +1,27 @@
+{
+  "QFrame": {
+          "default": ".QFrame{border-style:solid; border-width:2px; border-color:rgb(139, 139, 139); border-radius:5px; background:qlineargradient(x1: 0, x2: 1, stop: 0 rgb(50, 48, 55), stop: .6 rgb(40, 38, 45));}",
+          "default_active": ".QFrame{border-style:solid; border-width:4px; border-color:rgb(139, 139, 139); border-radius:5px; background:qlineargradient(x1: 0, x2: 1, stop: 0 rgb(50, 48, 55), stop: .8 rgb(40, 38, 45));}",
+          "red": ".QFrame{border-style:solid; border-width:2px; border-color:rgb(150, 50, 50);   border-radius:5px; background:qlineargradient(x1: 0, x2: 1, stop: 0 rgb(50, 48, 55), stop: .6 rgb(40, 38, 45));}",
+          "red_active": ".QFrame{border-style:solid; border-width:4px; border-color:rgb(150, 50, 50);   border-radius:5px; background:qlineargradient(x1: 0, x2: 1, stop: 0 rgb(80, 19, 19), stop: .8 rgb(40, 38, 45));}",
+          "green": ".QFrame{border-style:solid; border-width:2px; border-color:rgb(55, 198, 59);   border-radius:5px; background:qlineargradient(x1: 0, x2: 1, stop: 0 rgb(50, 48, 55), stop: .6 rgb(40, 38, 45));}",
+          "green_active": ".QFrame{border-style:solid; border-width:4px; border-color:rgb(55, 198, 59);   border-radius:5px; background:qlineargradient(x1: 0, x2: 1, stop: 0 rgb(38, 57, 42), stop: .8 rgb(40, 38, 45));}",
+          "blue": ".QFrame{border-style:solid; border-width:2px; border-color:rgb(120, 120, 190); border-radius:5px; background:qlineargradient(x1: 0, x2: 1, stop: 0 rgb(50, 48, 55), stop: .6 rgb(40, 38, 45));}",
+          "blue_active": ".QFrame{border-style:solid; border-width:4px; border-color:rgb(120, 120, 190); border-radius:5px; background:qlineargradient(x1: 0, x2: 1, stop: 0 rgb(30, 33, 56), stop: .8 rgb(40, 38, 45));}",
+          "yellow": ".QFrame{border-style:solid; border-width:2px; border-color:rgb(213, 221, 139); border-radius:5px; background:qlineargradient(x1: 0, x2: 1, stop: 0 rgb(50, 48, 55), stop: .6 rgb(40, 38, 45));}",
+          "yellow_active": ".QFrame{border-style:solid; border-width:4px; border-color:rgb(213, 221, 139); border-radius:5px; background:qlineargradient(x1: 0, x2: 1, stop: 0 rgb(55, 80, 20), stop: .8 rgb(40, 38, 45));}",
+          "purple": ".QFrame{border-style:solid; border-width:2px; border-color:rgb(192, 104, 184); border-radius:5px; background:qlineargradient(x1: 0, x2: 1, stop: 0 rgb(50, 48, 55), stop: .6 rgb(40, 38, 45));}",
+          "purple_active": ".QFrame{border-style:solid; border-width:4px; border-color:rgb(192, 104, 184); border-radius:5px; background:qlineargradient(x1: 0, x2: 1, stop: 0 rgb(80, 25, 70), stop: .8 rgb(40, 38, 45));}",
+          "orange": ".QFrame{border-style:solid; border-width:2px; border-color:rgb(210, 124, 80);  border-radius:5px; background:qlineargradient(x1: 0, x2: 1, stop: 0 rgb(50, 48, 55), stop: .7 rgb(40, 38, 45));}",
+          "orange_active": ".QFrame{border-style:solid; border-width:4px; border-color:rgb(210, 124, 80);  border-radius:5px; background:qlineargradient(x1: 0, x2: 1, stop: 0 rgb(150, 80, 22), stop: .8 rgb(40, 38, 45));}"
+  },
+  "QLabel": {
+    "default": "QLabel{background-color: rgb(139, 139, 139);}",
+    "red": "QLabel{background-color: rgb(150, 50, 50);}",
+    "green": "QLabel{background-color: rgb(55, 198, 59);}",
+    "blue": "QLabel{background-color: rgb(120, 120, 190);}",
+    "yellow": "QLabel{background-color: rgb(213, 221, 139);}",
+    "purple": "QLabel{background-color: rgb(192, 104, 184);}",
+    "orange": "QLabel{background-color: rgb(210, 124, 80);}"
+  }
+}

@@ -1,0 +1,63 @@
+/* QWidget */
+QWidget{
+    background-color:rgb(40, 38, 45);
+    color: rgb(148, 150, 180);
+    border-style: none;
+    border-radius: 3px;
+}
+
+/* QLineEdit */
+QLineEdit{
+    background: transparent;
+    color: rgb(125, 147, 154);
+}
+    
+QLineEdit::hover{
+    background-color:rgb(50, 54, 65);
+    color: rgb(200, 180, 120);
+}
+    
+QLineEdit::pressed{
+    background-color:rgb(80, 84, 95);
+}
+
+/* QToolButton */
+QToolButton{
+    background: transparent;
+    color:rgb(165, 165, 165);
+}
+    
+QToolButton::hover{
+    background-color: rgb(50, 48, 55);
+}
+    
+QToolButton::pressed{
+    background-color: rgb(60, 58, 65);
+    color: rgb(200, 180, 120);
+}
+
+/* QPushButton */
+QPushButton{
+    background: transparent;
+    color: rgb(125, 147, 154);
+    font-weight : bold;
+    padding: 10px;
+    font: 11pt Open Sans ExtraBold;
+}
+    
+QPushButton::hover{
+    background-color: rgb(50, 48, 55);
+    color: rgb(200, 180, 120);
+}
+    
+QPushButton:pressed{
+    background-color: rgb(60, 58, 65);
+    color: rgb(200, 180, 120);
+}
+
+/* QLabel */
+QLabel{
+    background: transparent;
+    color: rgb(125, 147, 154);
+    border-style: none;
+}

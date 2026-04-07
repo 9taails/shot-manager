@@ -1,0 +1,364 @@
+{
+  "renderSetup": {
+    "name": "renderSetup",
+    "renderLayers": [
+      {
+        "renderSetupLayer": {
+          "collections": [
+            {
+              "renderSettingsCollection": {
+                "children": [
+                  {
+                    "absUniqueOverride": {
+                      "attrValue": {
+                        "connectable": false,
+                        "type": "Time",
+                        "value": 250.0
+                      },
+                      "attribute": "startFrame",
+                      "localRender": false,
+                      "name": "startFrame",
+                      "selfEnabled": true,
+                      "targetNodeName": "defaultRenderGlobals"
+                    }
+                  },
+                  {
+                    "absUniqueOverride": {
+                      "attrValue": {
+                        "connectable": false,
+                        "type": "Time",
+                        "value": 30000.0
+                      },
+                      "attribute": "endFrame",
+                      "localRender": false,
+                      "name": "endFrame",
+                      "selfEnabled": true,
+                      "targetNodeName": "defaultRenderGlobals"
+                    }
+                  },
+                  {
+                    "absUniqueOverride": {
+                      "attrValue": {
+                        "connectable": true,
+                        "enum": {
+                          "0": "Disable",
+                          "1": "Enable",
+                          "2": "Batch Only"
+                        },
+                        "type": "Enum",
+                        "value": 0
+                      },
+                      "attribute": "aovGlobalEnableMode",
+                      "localRender": false,
+                      "name": "aovGlobalEnableMode",
+                      "selfEnabled": true,
+                      "targetNodeName": "redshiftOptions"
+                    }
+                  }
+                ],
+                "expandedState": false,
+                "isolateSelected": false,
+                "name": "RenderSettingsCollection",
+                "selector": {
+                  "simpleSelector": {
+                    "customFilterValue": "",
+                    "pattern": "",
+                    "previousPattern": "",
+                    "staticSelection": "defaultRenderQuality\ndefaultRenderGlobals\ndefaultResolution\nredshiftOptions",
+                    "typeFilter": 0
+                  }
+                },
+                "selfEnabled": true
+              }
+            }
+          ],
+          "groups": [
+            {
+              "group": {
+                "children": [
+                  {
+                    "collection": {
+                      "children": [
+                        {
+                          "collection": {
+                            "children": [
+                              {
+                                "collection": {
+                                  "children": [
+                                    {
+                                      "absOverride": {
+                                        "attrValue": {
+                                          "connectable": true,
+                                          "type": "Bool",
+                                          "value": true
+                                        },
+                                        "attribute": "primaryVisibility",
+                                        "localRender": false,
+                                        "name": "_FX_PRIMVIS_OV",
+                                        "selfEnabled": true
+                                      }
+                                    }
+                                  ],
+                                  "isolateSelected": false,
+                                  "name": "_FX_SHAPE_COL",
+                                  "selector": {
+                                    "simpleSelector": {
+                                      "customFilterValue": "",
+                                      "pattern": "*",
+                                      "previousPattern": "*",
+                                      "staticSelection": "",
+                                      "typeFilter": 2
+                                    }
+                                  },
+                                  "selfEnabled": true
+                                }
+                              }
+                            ],
+                            "isolateSelected": false,
+                            "name": "_FX_TRANSFORM_COL",
+                            "selector": {
+                              "simpleSelector": {
+                                "customFilterValue": "",
+                                "pattern": "*",
+                                "previousPattern": "*",
+                                "staticSelection": "",
+                                "typeFilter": 1
+                              }
+                            },
+                            "selfEnabled": true
+                          }
+                        }
+                      ],
+                      "isolateSelected": false,
+                      "name": "_FX_COL",
+                      "selector": {
+                        "simpleSelector": {
+                          "customFilterValue": "",
+                          "pattern": "shotFxSet",
+                          "previousPattern": "shotFxSet",
+                          "staticSelection": "",
+                          "typeFilter": 5
+                        }
+                      },
+                      "selfEnabled": true
+                    }
+                  },
+                  {
+                    "collection": {
+                      "children": [
+                        {
+                          "collection": {
+                            "children": [
+                              {
+                                "collection": {
+                                  "children": [
+                                    {
+                                      "absOverride": {
+                                        "attrValue": {
+                                          "connectable": true,
+                                          "type": "Bool",
+                                          "value": false
+                                        },
+                                        "attribute": "primaryVisibility",
+                                        "localRender": false,
+                                        "name": "_FG_PRIMVIS_OV",
+                                        "selfEnabled": true
+                                      }
+                                    }
+                                  ],
+                                  "isolateSelected": false,
+                                  "name": "_FG_SHAPE_COL",
+                                  "selector": {
+                                    "simpleSelector": {
+                                      "customFilterValue": "",
+                                      "pattern": "*",
+                                      "previousPattern": "*",
+                                      "staticSelection": "",
+                                      "typeFilter": 2
+                                    }
+                                  },
+                                  "selfEnabled": true
+                                }
+                              }
+                            ],
+                            "isolateSelected": false,
+                            "name": "_FG_TRANSFORM_COL",
+                            "selector": {
+                              "simpleSelector": {
+                                "customFilterValue": "",
+                                "pattern": "*",
+                                "previousPattern": "",
+                                "staticSelection": "",
+                                "typeFilter": 1
+                              }
+                            },
+                            "selfEnabled": true
+                          }
+                        }
+                      ],
+                      "expandedState": false,
+                      "isolateSelected": false,
+                      "name": "_FOREGROUND_COL",
+                      "selector": {
+                        "simpleSelector": {
+                          "customFilterValue": "",
+                          "pattern": "shotForegroundSet",
+                          "previousPattern": "shotForegroundSet",
+                          "staticSelection": "",
+                          "typeFilter": 5
+                        }
+                      },
+                      "selfEnabled": true
+                    }
+                  },
+                  {
+                    "collection": {
+                      "children": [
+                        {
+                          "collection": {
+                            "children": [
+                              {
+                                "collection": {
+                                  "children": [
+                                    {
+                                      "absOverride": {
+                                        "attrValue": {
+                                          "connectable": true,
+                                          "type": "Bool",
+                                          "value": false
+                                        },
+                                        "attribute": "primaryVisibility",
+                                        "localRender": false,
+                                        "name": "_BG_PRIMVIS_OV",
+                                        "selfEnabled": true
+                                      }
+                                    }
+                                  ],
+                                  "isolateSelected": false,
+                                  "name": "_BG_SHAPE_COL",
+                                  "selector": {
+                                    "simpleSelector": {
+                                      "customFilterValue": "",
+                                      "pattern": "*",
+                                      "previousPattern": "*",
+                                      "staticSelection": "",
+                                      "typeFilter": 2
+                                    }
+                                  },
+                                  "selfEnabled": true
+                                }
+                              }
+                            ],
+                            "isolateSelected": false,
+                            "name": "_BG_TRANSFORM_COL",
+                            "selector": {
+                              "simpleSelector": {
+                                "customFilterValue": "",
+                                "pattern": "*",
+                                "previousPattern": "",
+                                "staticSelection": "",
+                                "typeFilter": 1
+                              }
+                            },
+                            "selfEnabled": true
+                          }
+                        }
+                      ],
+                      "expandedState": false,
+                      "isolateSelected": false,
+                      "name": "_BACKGROUND_COL",
+                      "selector": {
+                        "simpleSelector": {
+                          "customFilterValue": "",
+                          "pattern": "shotBackgroundSet",
+                          "previousPattern": "shotBackgroundSet",
+                          "staticSelection": "",
+                          "typeFilter": 5
+                        }
+                      },
+                      "selfEnabled": true
+                    }
+                  },
+                  {
+                    "collection": {
+                      "children": [
+                        {
+                          "absOverride": {
+                            "attrValue": {
+                              "connectable": true,
+                              "type": "Bool",
+                              "value": true
+                            },
+                            "attribute": "renderable",
+                            "localRender": false,
+                            "name": "_RENDER_CAM_OV",
+                            "selfEnabled": true
+                          }
+                        }
+                      ],
+                      "expandedState": false,
+                      "isolateSelected": false,
+                      "name": "_CAMERA_COL",
+                      "selector": {
+                        "simpleSelector": {
+                          "customFilterValue": "camera",
+                          "pattern": "shotCameraShape",
+                          "previousPattern": "shotCameraShape",
+                          "staticSelection": "",
+                          "typeFilter": 8
+                        }
+                      },
+                      "selfEnabled": true
+                    }
+                  },
+                  {
+                    "collection": {
+                      "children": [],
+                      "expandedState": false,
+                      "isolateSelected": false,
+                      "name": "_LIGHTS_COL",
+                      "selector": {
+                        "simpleSelector": {
+                          "customFilterValue": "",
+                          "pattern": "shotLights, generic",
+                          "previousPattern": "shotLights, generic",
+                          "staticSelection": "",
+                          "typeFilter": 1
+                        }
+                      },
+                      "selfEnabled": true
+                    }
+                  },
+                  {
+                    "collection": {
+                      "children": [],
+                      "expandedState": false,
+                      "isolateSelected": false,
+                      "name": "_EXCLUDE_COL",
+                      "selector": {
+                        "simpleSelector": {
+                          "customFilterValue": "",
+                          "pattern": "",
+                          "previousPattern": "",
+                          "staticSelection": "",
+                          "typeFilter": 1
+                        }
+                      },
+                      "selfEnabled": false
+                    }
+                  }
+                ],
+                "expandedState": false,
+                "isolateSelected": false,
+                "name": "_BASE_GRP",
+                "selfEnabled": true
+              }
+            }
+          ],
+          "name": "RENDER_LAYER",
+          "renderable": true
+        }
+      }
+    ]
+  }
+}
