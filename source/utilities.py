@@ -10,7 +10,7 @@ from PySide6.QtWidgets import QWidget
 from shiboken6 import wrapInstance
 
 from ui.Paths import Paths
-from LayerCreator import LayerCreator
+from source.LayerCreator import LayerCreator
 
 try:
     import maya.cmds as mc
@@ -218,7 +218,7 @@ def shot_data_directory():
                 os.chmod(data_folder_directory, 777)
 
             except FileExistsError:
-                pass
+                return data_file_directory
 
         else:
 
@@ -260,7 +260,7 @@ def shot_data_directory():
                     shot_data_directory()
 
     except TypeError:
-        mc.warning("Save your scene inside the project structure and try again!")
+        print("Save your scene inside the project structure and try again!")
 
 
 def load_style_sheet():

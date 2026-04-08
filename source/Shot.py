@@ -21,9 +21,9 @@ from PySide6.QtWidgets import (
     QVBoxLayout
 )
 
-from CustomQTreeWidgetItem import CustomQTreeWidgetItem
+from source.CustomQTreeWidgetItem import CustomQTreeWidgetItem
 from ui.Paths import Paths
-import utilities as util
+import source.utilities as util
 
 
 class Shot(CustomQTreeWidgetItem):

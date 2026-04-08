@@ -213,3 +213,5 @@ __marimo__/
 .idea/*
 /.shot_manager/
 /.github/
+.vscode
+.vscode/*

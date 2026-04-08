@@ -19,8 +19,8 @@ try:
 except ModuleNotFoundError:  # Local testing
     pass
 
-import utilities as util
-from LayerCreator import LayerCreator
+import source.utilities as util
+from source.LayerCreator import LayerCreator
 from ui.Paths import Paths
 from ui.ShotBuilderUI import ShotBuilderUI
 

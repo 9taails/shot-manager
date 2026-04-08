@@ -17,7 +17,7 @@ try:
 except ModuleNotFoundError:  # Local testing
     pass
 
-import utilities as util
+import source.utilities as util
 from ui.Paths import Paths
 from ui.LayerCreatorUI import LayerCreatorUI
 

@@ -32,26 +32,27 @@ from PySide6.QtGui import (
 )
 
 try:
-    import maya.cmds as mc
-    import maya.mel as mel
-    import maya.app.renderSetup.model.renderSetup as render
-    import maya.app.renderSetup.model.renderLayer as renderLayer
-    import maya.app.renderSetup.model.override as override
-    import maya.app.renderSetup.model.container as container
-    import maya.app.renderSetup.views.overrideUtils as renderUtils
-    import maya.app.renderSetup.model.collection as collection
-    import pymel.core as pm
+    import maya.cmds as mc # pyright: ignore[reportMissingImports]
+    import maya.mel as mel # pyright: ignore[reportMissingImports]
+    import maya.app.renderSetup.model.renderSetup as render # pyright: ignore[reportMissingImports]
+    import maya.app.renderSetup.model.renderLayer as renderLayer # pyright: ignore[reportMissingImports]
+    import maya.app.renderSetup.model.override as override # pyright: ignore[reportMissingImports]
+    import maya.app.renderSetup.model.container as container # pyright: ignore[reportMissingImports]
+    import maya.app.renderSetup.views.overrideUtils as renderUtils # pyright: ignore[reportMissingImports]
+    import maya.app.renderSetup.model.collection as collection # pyright: ignore[reportMissingImports]
+    import pymel.core as pm # pyright: ignore[reportMissingImports]
 
 except ModuleNotFoundError:  # Local testing
     pass
 
-from source import utilities as util
+import source.utilities as util
 from ui.Paths import Paths
 from ui.ShotManagerUI import ShotManagerWindow
-from RenderLayer import RenderLayer
-from Shot import Shot
-from ShotBuilder import ShotBuilder
-from LayerCreator import LayerCreator
+from source.CustomQTreeWidgetItem import *
+from source.RenderLayer import RenderLayer
+from source.Shot import Shot
+from source.ShotBuilder import ShotBuilder
+from source.LayerCreator import LayerCreator
 
 
 class ShotManager(ShotManagerWindow):
@@ -71,7 +72,7 @@ class ShotManager(ShotManagerWindow):
     manager_instance = None         # maintain a single instance of the dialog in Production
 
     def __init__(self, parent=pw):
-        super(ShotManager, self).__init__(parent)
+        super(ShotManager, self).__init__()
 
         self.data_file_directory = Paths.return_shot_data_full_filepath()  # Path to data file
         self.data_directory = Paths.return_shot_data_directory()  # Path to data folder
@@ -254,7 +255,7 @@ class ShotManager(ShotManagerWindow):
 
                                 try:
 
-                                    Shot.apply_frame_style(new_layer_instance, shot_color)
+                                    CustomQTreeWidgetItem.apply_frame_style(new_layer_instance, shot_color)
 
                                 except TypeError:  # Old json file
 
@@ -272,19 +273,20 @@ class ShotManager(ShotManagerWindow):
 
         data = util.shot_data_directory()
 
-        if not layer:
+        if data is not None:
+            if not layer:
 
-            data[shot].update({
-                key: value
-            })
+                data[shot].update({
+                    key: value
+                })
 
-        else:
+            else:
 
-            data[shot]["layers"][layer].update({
-                key: value
-            })
+                data[shot]["layers"][layer].update({
+                    key: value
+                })
 
-        self.write_data(data)
+            self.write_data(data)
 
     #############################################
     # ---------> BUTTON FUNCTIONALITY <----------
@@ -1486,7 +1488,7 @@ class ShotManager(ShotManagerWindow):
                 new_layer_instance.render_button.setChecked(True)
 
                 self.shotList_treeWidget.setItemWidget(child_item, 0, new_layer_instance)
-                Shot.apply_frame_style(new_layer_instance, layer_color)
+                CustomQTreeWidgetItem.apply_frame_style(new_layer_instance, layer_color)
                 child_item.setSizeHint(0, QSize(440, 60))
 
             self.set_layer_renderable()

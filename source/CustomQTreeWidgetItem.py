@@ -7,7 +7,7 @@ from PySide6.QtWidgets import (
 )
 
 from ui.Paths import Paths
-import utilities as util
+import source.utilities as util
 
 
 class CustomQTreeWidgetItem(QWidget, QStandardItem):
