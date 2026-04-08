@@ -12,7 +12,6 @@ from PySide6.QtGui import (
     QFont
 )
 from PySide6.QtWidgets import (
-    QWidget,
     QHBoxLayout,
     QSizePolicy,
     QFrame,
@@ -23,7 +22,7 @@ from PySide6.QtWidgets import (
 )
 
 from CustomQTreeWidgetItem import CustomQTreeWidgetItem
-from ShotManager.ui.Paths import Paths
+from ui.Paths import Paths
 import utilities as util
 
 

@@ -21,8 +21,8 @@ except ModuleNotFoundError:  # Local testing
 
 import utilities as util
 from LayerCreator import LayerCreator
-from ShotManager.ui.Paths import Paths
-from ShotManager.ui.ShotBuilderUI import ShotBuilderUI
+from ui.Paths import Paths
+from ui.ShotBuilderUI import ShotBuilderUI
 
 
 class ShotBuilder(QDialog, ShotBuilderUI):

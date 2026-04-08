@@ -6,7 +6,7 @@ from PySide6.QtWidgets import (
     QToolButton,
 )
 
-from ShotManager.ui.Paths import Paths
+from ui.Paths import Paths
 import utilities as util
 
 

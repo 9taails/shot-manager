@@ -45,9 +45,9 @@ try:
 except ModuleNotFoundError:  # Local testing
     pass
 
-from ShotManager.source import utilities as util
-from ShotManager.ui.Paths import Paths
-from ShotManager.ui.ShotManagerUI import ShotManagerWindow
+from source import utilities as util
+from ui.Paths import Paths
+from ui.ShotManagerUI import ShotManagerWindow
 from RenderLayer import RenderLayer
 from Shot import Shot
 from ShotBuilder import ShotBuilder
