@@ -14,6 +14,7 @@ class Paths:
 	temp_files = os.path.join(base, "temp")		# Path to temp folder
 	preset_files = os.path.join(sm_folder, "layer_presets")		# Path to preset folder
 	icons = os.path.join(base, "icons")		# Path to icons folder
+	
 
 	@classmethod
 	def return_shot_data_directory(cls):

@@ -89,9 +89,6 @@ class CustomQTreeWidgetItem(QWidget, QStandardItem):
         widget = self.__getattribute__(widget_name)
         return widget
 
-    def return_shot_dictionary(self):
-        pass
-
     @staticmethod
     def return_button_checked_state(widget: QToolButton):
         """ Returns the checked state of a QToolButton. """

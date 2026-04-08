@@ -174,7 +174,7 @@ class RenderLayer(CustomQTreeWidgetItem):
     """
 
     def __init__(self, layer_name):
-        super().__init__()
+        super(RenderLayer, self).__init__()
 
         self.data_file_directory = Paths.return_shot_data_full_filepath()  # Path to data file
         self.layer_name = layer_name

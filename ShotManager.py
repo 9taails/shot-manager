@@ -5,7 +5,6 @@ from functools import partial
 import re
 import json
 
-from PySide6 import QtWidgets
 from PySide6.QtCore import (
     QSize,
     Qt
@@ -22,7 +21,6 @@ from PySide6.QtWidgets import (
     QInputDialog,
     QMenu,
     QGridLayout,
-
 )
 
 from PySide6.QtGui import (
@@ -33,14 +31,6 @@ from PySide6.QtGui import (
 
 try:
     import maya.cmds as mc # pyright: ignore[reportMissingImports]
-    import maya.mel as mel # pyright: ignore[reportMissingImports]
-    import maya.app.renderSetup.model.renderSetup as render # pyright: ignore[reportMissingImports]
-    import maya.app.renderSetup.model.renderLayer as renderLayer # pyright: ignore[reportMissingImports]
-    import maya.app.renderSetup.model.override as override # pyright: ignore[reportMissingImports]
-    import maya.app.renderSetup.model.container as container # pyright: ignore[reportMissingImports]
-    import maya.app.renderSetup.views.overrideUtils as renderUtils # pyright: ignore[reportMissingImports]
-    import maya.app.renderSetup.model.collection as collection # pyright: ignore[reportMissingImports]
-    import pymel.core as pm # pyright: ignore[reportMissingImports]
 
 except ModuleNotFoundError:  # Local testing
     pass
@@ -48,30 +38,27 @@ except ModuleNotFoundError:  # Local testing
 import source.utilities as util
 from ui.Paths import Paths
 from ui.ShotManagerUI import ShotManagerWindow
-from source.CustomQTreeWidgetItem import *
+from source.CustomQTreeWidgetItem import CustomQTreeWidgetItem
 from source.RenderLayer import RenderLayer
 from source.Shot import Shot
 from source.ShotBuilder import ShotBuilder
 from source.LayerCreator import LayerCreator
 
 
-class ShotManager(ShotManagerWindow):
-    """A class for the shot-oriented UI.
-
-    This tool improves Maya's default functionality by creating a set of elements for a single or multiple
-    shots defined by the user. Each created set contains basic shot information in the form of attributes, like
-    frame range and resolution. The UI allows for easily switching between the various shots and/or render layers.
+class ShotManager(ShotManagerWindow):   # pylint: disable=too-many-public-methods
+    """Class containing the main UI with all functionality for iterating 
+    through shot's render layers and syncing widget status with the JSON file.
     """
-
-    # CLASS VARIABLES
+    
+    # Get window's parent
     try:
-        pw = util.get_maya_window()
+        parent = util.get_maya_window()
     except NameError:
-        pw = None
+        parent = None
+            
+    manager_instance = None     # maintain a single instance of the dialog in Production
 
-    manager_instance = None         # maintain a single instance of the dialog in Production
-
-    def __init__(self, parent=pw):
+    def __init__(self, parent=parent):
         super(ShotManager, self).__init__()
 
         self.data_file_directory = Paths.return_shot_data_full_filepath()  # Path to data file
@@ -85,15 +72,11 @@ class ShotManager(ShotManagerWindow):
         self.tree_object = self.shotList_treeWidget
 
         self.set_up_model(self.data)
-
-        self.newShot_button.clicked.connect(lambda: self.show_shot_builder())
-        self.newLayer_button.clicked.connect(lambda: self.get_selection())
-        self.newLayer_button.clicked.connect(lambda: self.show_layer_creator())
+        self.connect_signals()
 
         # Runs in Maya only
 
-        if "maya" in sys.modules:
-
+        if self.maya_is_loaded():
             util.set_redshift_renderer()
             util.set_correct_fps()
             util.create_default_groups()
@@ -102,21 +85,27 @@ class ShotManager(ShotManagerWindow):
         else:
             print("Maya hasn't been loaded yet.")
 
+    # Connect button functionality
+    def connect_signals(self):
+        """ Connects all button signals to their respective functions.
+        """
+        
+        self.newShot_button.clicked.connect(lambda: self.show_shot_builder())
+        self.newLayer_button.clicked.connect(lambda: self.get_selection())
+        self.newLayer_button.clicked.connect(lambda: self.show_layer_creator())
+        
         self.set_shot_visibility()
         self.set_layer_visibility()
-
+        
         self.connect_shot_button("render_button")
         self.set_layer_renderable()
-
         self.connect_shot_button("frame_range_button")
         self.on_shot_frame_editing_finished()
         self.connect_layer_frame_range_edit_fields("start")
         self.connect_layer_frame_range_edit_fields("end")
         self.toggle_layer_range_icons()
-
         self.aov_init_layer_buttons("aov_beauty_button")
         self.aov_init_layer_buttons("aov_utility_button")
-
         self.connect_shot_button("aov_button")
         self.aov_mode_init_layer_button("aov_button")
         self.aov_mode_connect_layer_button()
@@ -124,12 +113,10 @@ class ShotManager(ShotManagerWindow):
         self.aov_connect_layer_button("aov_beauty_button")
         self.connect_shot_button("aov_utility_button")
         self.aov_connect_layer_button("aov_utility_button")
-
         self.set_shot_buttons_indicator_color()
-
+        
         self.delete_shot()
         self.delete_layer()
-
         self.show_edit_menu()
 
     # Windows display
@@ -160,12 +147,20 @@ class ShotManager(ShotManagerWindow):
         """Shows the Layer Creator Dialog."""
 
         lc_window = LayerCreator(self)
-        lc_window.createLayers_button.clicked.connect(lambda: lc_window.add_new_layers(self.data,
-                                                                                       self.get_selection()))
+        lc_window.createLayers_button.clicked.connect(
+            lambda: lc_window.add_new_layers(self.data, self.get_selection()))
         lc_window.createLayers_button.clicked.connect(lambda: self.set_up_model(self.data))
         lc_window.createLayers_button.clicked.connect(lambda: self.add_render_layer_widget())
         lc_window.createLayers_button.clicked.connect(lambda: lc_window.accept())
         lc_window.show()
+
+    def maya_is_loaded(self):
+        """Returns True if Maya is loaded, else False."""
+        
+        if "maya" in sys.modules:
+            return True
+
+        return False
 
     #############################################
     # ---------> DATA MANAGEMENT <----------
@@ -203,7 +198,7 @@ class ShotManager(ShotManagerWindow):
 
             if len(shot_list) > 0:
                 # Create shot items from data model
-
+            
                 for shot in shot_list:
 
                     # Don't add shots if they're already in the list
@@ -220,7 +215,8 @@ class ShotManager(ShotManagerWindow):
                         new_shot_instance.setObjectName(shot)
                         new_shot_instance.setParent(self)
 
-                        tree_widget.setItemWidget(widget_item, 0, new_shot_instance)  # Class QTreeWidgetItem
+                        tree_widget.setItemWidget(
+                            widget_item, 0, new_shot_instance)  # Class QTreeWidgetItem
 
                         widget_item.setSizeHint(0, QSize(550, 75))
 
@@ -255,7 +251,8 @@ class ShotManager(ShotManagerWindow):
 
                                 try:
 
-                                    CustomQTreeWidgetItem.apply_frame_style(new_layer_instance, shot_color)
+                                    CustomQTreeWidgetItem.apply_frame_style(
+                                        new_layer_instance, shot_color)
 
                                 except TypeError:  # Old json file
 
@@ -303,7 +300,10 @@ class ShotManager(ShotManagerWindow):
         return button.isChecked()
 
     def connect_shot_button(self, button_name):
-
+        """Toggle icon and checked status on the shot-level buttons.
+        Args:
+        button_name (str): name of the button
+        """
         # Get a list of all shots class Shot
         shot_widgets = self.return_child_widgets(self.root, "Shot")
 
@@ -341,15 +341,16 @@ class ShotManager(ShotManagerWindow):
                 except KeyError:        # For non-toggable buttons
                     pass
 
-    def reset_layers(self, shot_widget: QTreeWidgetItem, parent_button: QToolButton, button_name: str):
-        """ Loops over all shot's layers icons and toggles the checked status of all those icons to the same status
-            the shot icon has. Used in resetting all frame range overrides on layers and setting renderable status on
-            all shot layers at once.
+    def reset_layers(self, shot_widget, parent_button, button_name):
+        """ Loops over all shot's layers icons and toggles the checked status of all 
+        those icons to the same status the shot icon has. Used in resetting all 
+        frame range overrides on layers and setting renderable status on all shot 
+        layers at once.
 
             Args:
-                shot_widget: QTreeWidgetItem, container of Shot
-                parent_button: QToolButton attrib of Shot
-                button_name: name of the button
+                shot_widget (QTreeWidgetItem): container of Shot
+                parent_button (QToolButton): attrib of Shot
+                button_name (str): name of the button
         """
 
         shot = self.return_respective_type(shot_widget, self.root, "Shot")
@@ -379,7 +380,7 @@ class ShotManager(ShotManagerWindow):
 
                     self.aov_mode_reset_layers(parent_button, b)
 
-                elif button_name == "aov_beauty_button" or button_name == "aov_utility_button":
+                elif button_name in ["aov_beauty_button", "aov_utility_button"]:
 
                     aov_group = button_name.split("_")[1]
 
@@ -387,7 +388,8 @@ class ShotManager(ShotManagerWindow):
                     util.create_aov_and_override_enabled(layer_name, aov_group, status)
 
     def toggle_shot_icon_and_tooltip(self, shot_widget, shot_button, button_name):
-        """ Function toggles the shot buttons, their icons and tooltips based on the checked status of its layers.
+        """ Function toggles the shot buttons, their icons and tooltips based on 
+        the checked status of its layers.
 
             Args:
                 shot_widget (QTreeWidgetItem): QTreeItemWidget for the shot
@@ -419,7 +421,8 @@ class ShotManager(ShotManagerWindow):
         shot_button.setToolTip(tooltip)
 
     def toggle_layer_icon_and_tooltip(self, button):
-        """ Function toggles the shot buttons, their icons and tooltips based on the checked status of its layers.
+        """ Function toggles the shot buttons, their icons and tooltips based on 
+        the checked status of its layers.
 
             Args:
                 button (QToolButton): Instance of any child QToolButton of Render Layer
@@ -448,9 +451,8 @@ class ShotManager(ShotManagerWindow):
     ####################################
 
     def set_shot_visibility(self, button_name="visibility_button"):
-        """Checks the status of all top level visibility buttons and toggles the current icon, keeping only one
-                   Shot visible at a time.
-
+        """Checks the status of all top level visibility buttons and toggles 
+        the current icon, keeping only one Shot visible at a time.
         """
 
         shot_widgets = self.return_child_widgets(self.root, "Shot")
@@ -462,7 +464,7 @@ class ShotManager(ShotManagerWindow):
 
             parent_button = shot.return_child_widget(button_name)
 
-            shot_name = shot.__getattribute__("shot_name")
+            shot_name = shot.return_shot_name(parent_button)
             layer_name = shot_name + "master"
 
             self.toggle_shot_icon_and_tooltip(shot_widget, parent_button, button_name)
@@ -473,9 +475,7 @@ class ShotManager(ShotManagerWindow):
             parent_button.clicked.connect(partial(util.switch_layer, layer_name))
 
     def set_layer_visibility(self, button_name="visibility_button"):
-        """Toggles the icon and sets the correct render layer .renderable attribute to reflect the change.
-
-        """
+        """Toggles the icon and sets the correct render layer as active."""
 
         buttons = self.return_shot_children_by_name(button_name, None)
 
@@ -487,11 +487,13 @@ class ShotManager(ShotManagerWindow):
             b.clicked.connect(partial(self.hide_other_shots, None))
             b.clicked.connect(partial(self.hide_other_layers, b))
             b.clicked.connect(partial(self.set_shot_visibility))
-            b.clicked.connect(partial(util.switch_layer, layer_name))
+            
+            if self.maya_is_loaded():
+                b.clicked.connect(partial(util.switch_layer, layer_name))
 
     def toggle_layer_visible_status(self, button: QToolButton):
-        """Retrieves the .isChecked() status of the button, toggles the icon based on the value, updates the data file
-            with the new value and calls the function to toggle the renderable attribute in the scene.
+        """Retrieves the .isChecked() status of the button and toggles the icon based on 
+        the value.
 
             Args:
                 button: instance of the pressed QToolButton
@@ -513,9 +515,9 @@ class ShotManager(ShotManagerWindow):
             button.setToolTip("Set active layer.")
 
     def hide_other_shots(self, button: QToolButton, button_name="visibility_button"):
-        """Unchecks all the visibility buttons except the current button, so that only one shot at a time
-        is highlighted. Additionally, switches the view in Maya to current shot, setting the correct
-        playback range and camera.
+        """Unchecks all the visibility buttons except the current button, so that 
+        only one shot at a time is highlighted. Additionally, switches the view 
+        in Maya to current shot, setting the correct playback range and camera.
 
             Args:
                 button (QObject) = A QToolButton, instance of the currently checked button
@@ -526,33 +528,23 @@ class ShotManager(ShotManagerWindow):
 
         all_buttons = self.return_widgets_by_name(self.root, button_name)
 
-        if button:
-
-            off_list = [b for b in all_buttons if b is not button]
-
-        else:
-
-            off_list = all_buttons
+        off_list = [b for b in all_buttons if b is not button]
 
         for buttons in off_list:
             buttons.setChecked(False)
             buttons.setIcon(QIcon(Paths.icon("icon_visibility_off.png")))
 
     def hide_other_layers(self, button, button_name="visibility_button"):
-        """Checks the status of all child level visibility buttons and toggles the icon, keeping only one RenderLayer
-            visible at a time. Toggles the visibility state of the parent Shot.
-
+        """Checks the status of all child level visibility buttons and toggles 
+        the icon, keeping only one RenderLayer visible at a time. Toggles the 
+        visibility state of the parent Shot.
+        Args:
+        button (QToolButton): instance of the clicked button
         """
 
         layer_buttons = self.return_shot_children_by_name(button_name, None)
 
-        if button:
-
-            off_layers = [b for b in layer_buttons if b is not button]
-
-        else:
-
-            off_layers = layer_buttons
+        off_layers = [b for b in layer_buttons if b is not button]
 
         for buttons in off_layers:
             buttons: QToolButton
@@ -568,7 +560,9 @@ class ShotManager(ShotManagerWindow):
     ####################################
 
     def set_layer_renderable(self, button_name="render_button"):
-        """Toggles the icon and sets the correct render layer .renderable attribute to reflect the change."""
+        """Toggles the icon and sets the correct render layer .renderable 
+        attribute to reflect the change.
+        """
 
         # Get render buttons for all layers.
         buttons = self.return_shot_children_by_name(button_name, None)
@@ -591,18 +585,20 @@ class ShotManager(ShotManagerWindow):
             parent_button = shot.render_button
 
             # Connect layer buttons
-            b.clicked.connect(partial(self.toggle_layer_renderable_status, b, shot_name, layer_name))
-            b.clicked.connect(partial(self.toggle_shot_icon_and_tooltip, shot_widget, parent_button, button_name))
+            b.clicked.connect(partial(self.toggle_layer_renderable_status,
+                                      b, shot_name, layer_name))
+            b.clicked.connect(partial(self.toggle_shot_icon_and_tooltip,
+                                      shot_widget, parent_button, button_name))
 
-    def toggle_layer_renderable_status(self, button: QToolButton, shot: str, layer: str):
-        """Retrieves the .isChecked() status of the button, toggles the icon based on the value, updates the data file
-            with the new value and calls the function to toggle the renderable attribute in the scene.
+    def toggle_layer_renderable_status(self, button, shot, layer):
+        """Retrieves the .isChecked() status of the button, toggles the icon based on
+        the value, updates the data file with the new value and calls the function
+        to toggle the renderable attribute in the scene.
 
             Args:
-                button: instance of the shot's QToolButton
-                shot: name of the shot
-                layer: name of layer that's being edited
-
+                button (QToolButton): instance of the shot's QToolButton
+                shot (str): name of the shot
+                layer (str): name of layer that's being edited
         """
 
         status = self.return_status(button)
@@ -623,7 +619,9 @@ class ShotManager(ShotManagerWindow):
     ####################################
 
     def on_shot_frame_editing_finished(self):
-        """Connects the editing finished on the frame range field to function that changes the frame range."""
+        """Connects the editing finished on the frame range field
+        to function that changes the frame range.
+        """
 
         start_fields = self.return_widgets_by_name(self.root, "start")
         end_fields = self.return_widgets_by_name(self.root, "end")
@@ -634,8 +632,8 @@ class ShotManager(ShotManagerWindow):
             widget.editingFinished.connect(partial(self.change_global_shot_frame_range, widget))
 
     def change_global_shot_frame_range(self, field: QLineEdit):
-        """ Sets shot frame range and sets all shot layers frame ranges to the same value if the layers have no
-            frame range overrides.
+        """ Sets shot frame range and sets all shot layers frame ranges to the same value
+        if the layers have no frame range overrides.
 
             Args:
                 field: Shot start or end edit field
@@ -649,8 +647,10 @@ class ShotManager(ShotManagerWindow):
         field_name = shot_field_name.split("_")[1]  # ex: start
 
         # Get shot's render layers
-        layer_edit_widgets = self.return_widgets_by_name(parent, field_name)  # Get shot's layers' widgets
-        layer_icons = self.return_widgets_by_name(parent, "frame_range_button")  # Get shot's layers' icons
+        # Get shot's layers' widgets
+        layer_edit_widgets = self.return_widgets_by_name(parent, field_name)
+        # Get shot's layers' icons
+        layer_icons = self.return_widgets_by_name(parent, "frame_range_button")
 
         # Loop over each layer's edit widget;
         # Get the name of the layer
@@ -659,7 +659,8 @@ class ShotManager(ShotManagerWindow):
 
             layer_name = RenderLayer.return_layer_name(layer_edit_field)
 
-            index = layer_edit_widgets.index(layer_edit_field)  # Get respective icon and check its status
+            # Get respective icon and check its status
+            index = layer_edit_widgets.index(layer_edit_field)
             icon: QToolButton = layer_icons[index]
             icon_status = icon.isChecked()
 
@@ -814,7 +815,7 @@ class ShotManager(ShotManagerWindow):
             button.clicked.connect(partial(self.toggle_layer_aov_mode_status, button, shot_name, layer_name))
 
     def aov_mode_init_layer_button(self, button_name="aov_button"):
-
+        """Sync AOV mode from the JSON file. Options are Enabled, Batch Only, Disabled."""
         # Get AOV buttons for all the layers
         buttons = self.return_shot_children_by_name(button_name, None)
         data = util.shot_data_directory()
@@ -830,26 +831,16 @@ class ShotManager(ShotManagerWindow):
 
             # Get AOVs list for the layer
             if layer_dict:
-
-                # If the layer dictionary exists - in case it's an old file or there's an error updating
                 for _ in layers_list:
                     aov_mode = layer_dict.get("AOV mode")
 
-                    # Old files had different values for the AOVs key
-                    if aov_mode is None or type(aov_mode) is not int:
-                        print("This is an old file and there's no AOVs entry in the data file.")
-                        pass
+                    if aov_mode == 1:
+                        button.setChecked(True)
 
-                    # Set checked state for each button based on the AOVs value
                     else:
+                        button.setChecked(False)
 
-                        if aov_mode == 1:
-                            button.setChecked(True)
-
-                        else:
-                            button.setChecked(False)
-
-                        self.toggle_layer_icon_and_tooltip(button)
+                    self.toggle_layer_icon_and_tooltip(button)
 
     def toggle_layer_aov_mode_status(self, button: QToolButton, shot: str, layer: str):
         """Retrieves the .isChecked() status of the button, toggles the icon based on the value, updates the data file
@@ -934,28 +925,18 @@ class ShotManager(ShotManagerWindow):
 
             # Get AOVs list for the layer
             if layer_dict:
-
-                # If the layer dictionary exists - in case it's an old file or there's an error updating
                 for _ in layers_list:
                     aovs = layer_dict.get("AOVs")
 
-                    # Old files had different values for the AOVs key
-                    if aovs is None or type(aovs) is not list:
-                        print("This is an old file and there's no AOVs entry in the data file.")
-                        pass
+                    aov_name = button_name.split("_")[1]
 
-                    # Set checked state for each button based on the AOVs value
+                    if aov_name and aov_name in aovs:
+                        button.setChecked(True)
+
                     else:
+                        button.setChecked(False)
 
-                        aov_name = button_name.split("_")[1]
-
-                        if aov_name and aov_name in aovs:
-                            button.setChecked(True)
-
-                        else:
-                            button.setChecked(False)
-
-                        self.toggle_layer_icon_and_tooltip(button)
+                    self.toggle_layer_icon_and_tooltip(button)
 
     def aov_connect_layer_button(self, button_name):
         """Toggles the icon and AOV render mode for all the layers in the shot."""
@@ -971,7 +952,7 @@ class ShotManager(ShotManagerWindow):
             shot_name = RenderLayer(layer).return_shot_name(button)
             shot = self.root.treeWidget().findChild(Shot, shot_name)
             shot_widget = self.return_respective_type(shot, self.root, "QTreeWidgetItem")
-            parent_button = shot.__getattribute__(button_name)
+            parent_button = shot.return_child_widget(button_name)
 
             # Connect the button to toggle the layer's icon, checked state and update it in the JSON
             button.clicked.connect(partial(self.aov_toggle, button))
@@ -1009,7 +990,7 @@ class ShotManager(ShotManagerWindow):
         try:
             util.create_aov_and_override_enabled(layer_name, mode_name, override_value)
         except RuntimeError:    # AOVs are missing
-            print(f"AOVs missing.")
+            print("AOVs missing.")
 
         # Update the key: value pair in the dictionary
 
@@ -1022,6 +1003,7 @@ class ShotManager(ShotManagerWindow):
     #################################
 
     def show_edit_menu(self):
+        """ Display the edit menu on button click. """
 
         buttons = self.return_widgets_by_name(self.root, "edit_button")
 
@@ -1029,6 +1011,12 @@ class ShotManager(ShotManagerWindow):
             button.customContextMenuRequested.connect(partial(self.create_context_edit_menu, button))
 
     def create_context_edit_menu(self, button, position):
+        """Create context menu for renaming and changing shot color.
+
+            Args:
+            button (QWIdget): instance of the button
+            position (QPoint) - pointer to the button's position 
+        """
 
         # Get shot name
         shot_name = Shot.return_shot_name(button)
@@ -1051,6 +1039,10 @@ class ShotManager(ShotManagerWindow):
         context_menu.exec_(button.mapToGlobal(position))
 
     def rename_shot(self, shot):
+        """Change the name of the shot and its elements.
+        Args:
+            shot(str): name of the shot
+        """
 
         existing_shots = util.get_shots()
         data = util.shot_data_directory()  # JSON data file directory
@@ -1104,7 +1096,7 @@ class ShotManager(ShotManagerWindow):
 
             layer_dict = data[old_name]["layers"][e_layer]
 
-            for k, v, in layer_dict.copy().items():  # Loop over layers' dictionaries and update their names
+            for k, _ in layer_dict.copy().items():  # Loop over layers' dictionaries and update their names
 
                 if k == "name":
                     layer_dict["name"] = new_layer
@@ -1122,7 +1114,7 @@ class ShotManager(ShotManagerWindow):
         # Update view
         # Write data to JSON file in a separate thread
 
-        with open(self.data_file_directory, "w") as data_dump:
+        with open(self.data_file_directory, encoding="utf-8", mode="w") as data_dump:
             json.dump(data, data_dump, indent=4)
 
     ##########################################
@@ -1152,7 +1144,7 @@ class ShotManager(ShotManagerWindow):
 
                 child_list.append(tree_item)
 
-        elif child_class == "Shot" or child_class == "RenderLayer":
+        elif child_class in ["Shot", "RenderLayer"]:
 
             for index in range(0, parent.childCount()):
                 tree_item: QTreeWidgetItem = parent.child(index)  # QTreeWidgetItem
@@ -1180,17 +1172,17 @@ class ShotManager(ShotManagerWindow):
         for index in range(0, parent.childCount()):
             tree_item: QTreeWidgetItem = parent.child(index)  # QTreeWidgetItem
             widget_item: Shot | RenderLayer = self.tree_object.itemWidget(tree_item, 0)  # A Shot/Layer class item
-            widget = widget_item.__getattribute__(widget_name)
+            widget = widget_item.return_child_widget(widget_name)
             named_widget_list.append(widget)
 
         return named_widget_list
 
     def return_shot_children_by_name(self, widget_name: str, shot_name: str or None):
-        """Retrieve the list of widgets with given name.
+        """Retrieve the list of layer widgets with given name.
 
             Args:
                 widget_name (str) = Name of the Qt object
-                shot_name (str): (Optional) Name of the shot, to return only shot layers
+                shot_name (str): (Optional) Name of the shot, to return only shot widgets
 
             Returns:
                 button_widgets (list) : A list of widgets with the given widget_name
@@ -1219,24 +1211,17 @@ class ShotManager(ShotManagerWindow):
                 shot = self.return_respective_type(shot_widget, self.root, "Shot")
 
                 # If the name is the same as the given shot name, add those buttons to the button_widgets list
-                s_name = shot.shot_name
+                s_name = getattr(shot, "shot_name")
 
-                if widget_name is not None:
+                button = layer.return_child_widget(widget_name)  # QObject, parameter of Render Layer
 
-                    button = layer.__getattribute__(widget_name)  # QObject, parameter of Render Layer
-
-                    if shot_name == s_name:
-                        button_widgets.append(button)
-                        all_button_widgets.append(button)
-
-                    else:
-                        all_button_widgets.append(button)
-
-            if shot_name:
-                return button_widgets
-
-        if not shot_name:
-            return all_button_widgets
+                if shot_name == s_name and shot_name is not None:
+                    button_widgets.append(button)
+                    return button_widgets
+                
+                all_button_widgets.append(button)
+        
+        return all_button_widgets
 
     def return_buttons_status_list(self, parent, widget_name):
         """ Returns a list of .checked state for all layers' buttons with a given widget name for the given parent.
@@ -1252,7 +1237,7 @@ class ShotManager(ShotManagerWindow):
 
             tree_item: QStandardItem = parent.child(index)  # QTreeWidgetItem
             parent_widget: Shot | RenderLayer = self.tree_object.itemWidget(tree_item, 0)  # A Shot/Layer class item
-            widget = parent_widget.__getattribute__(widget_name)
+            widget = parent_widget.return_child_widget(widget_name)
 
             widget_status = parent_widget.return_button_checked_state(widget)
 
@@ -1283,7 +1268,7 @@ class ShotManager(ShotManagerWindow):
 
                 if widget_name is not None:
 
-                    button = layer.__getattribute__(widget_name)  # QObject, parameter of Render Layer
+                    button = layer.return_child_widget(widget_name)  # QObject, parameter of Render Layer
                     button_widgets.append([button, shot_widget])
 
                 else:
@@ -1292,7 +1277,14 @@ class ShotManager(ShotManagerWindow):
 
         return button_widgets
 
-    def return_respective_type(self, item, parent: ShotManager.root | QTreeWidgetItem, type_out: str):
+    def return_respective_type(self, item, parent, type_out):
+        """Returns desired object type for the item.
+        Args:
+            item(QTreeWidgetItem | Shot | Render Layer): object pointer
+            parent(ShotManager.root | QTreeWidgetItem): Depending if the object is a shot (parent=root)
+                                                        or a layer (parent=QTreeWidgetItem)
+            type_out(str): returns the exact name for the shot's output object type
+        """
 
         widgets = self.return_child_widgets(parent, "QTreeWidgetItem")
         shot_items = self.return_child_widgets(parent, "Shot")
@@ -1495,6 +1487,7 @@ class ShotManager(ShotManagerWindow):
             self.update_layer_count(shot_name, str(len(layer_list)))
 
     def get_selection(self):
+        """Returns currently selected shot widgets."""
 
         active_selection = []
         selection = self.shotList_treeWidget.selectedItems()
@@ -1508,7 +1501,13 @@ class ShotManager(ShotManagerWindow):
         return active_selection
 
     def update_layer_count(self, shot, count):
-
+        """Updates the number of layers on the Shot widget.
+        
+        Args:
+            shot(str): name of the shot
+            count(str): number of layers
+        """
+        
         count_labels = self.return_widgets_by_name(self.root, "layers_label")
 
         for label in count_labels:
@@ -1556,8 +1555,8 @@ class ShotManager(ShotManagerWindow):
             color_button.clicked.connect(partial(util.change_layer_color, layers, color_name))
 
             color_button.clicked.connect(partial(dialog.hide))
-            color_button.clicked.connect(lambda: self.deleteLater())
-            color_button.clicked.connect(lambda: self.show_ui())
+            color_button.clicked.connect(lambda: self.deleteLater()) # pylint: disable=unnecessary-lambda
+            color_button.clicked.connect(lambda: self.show_ui()) # pylint: disable=unnecessary-lambda
 
             layout.addWidget(color_button, 0, col)
 
@@ -1573,13 +1572,15 @@ class ShotManager(ShotManagerWindow):
                 button (QToolButton): Instance of the remove button that was pressed.
         """
 
-        message_text = "Have you thought this through? Are you sure you want to delete this shot?\n\nThe " \
-                       "following will be deleted for this shot:\n\nShot-specific set\nCamera\nLights\nRender layers"
+        message_text = "Are you sure you want to delete this shot?\n" \
+                       f"\nThe following will be deleted for {shot_name}:\n" \
+                       "\nSet\nCamera\nLights\nRender layers"
 
-        confirm_window = QtWidgets.QMessageBox()
+        confirm_window = QMessageBox()
         confirm_window.setWindowTitle("Remove shot")
         confirm_window.setInformativeText(message_text)
-        confirm_window.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        confirm_window.setStandardButtons(
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
         confirm_window.setWindowModality(Qt.WindowModality.ApplicationModal)
         confirm_window.exec()
 
@@ -1594,20 +1595,22 @@ class ShotManager(ShotManagerWindow):
             print("Rejected")
 
     def confirm_layer_removal(self, layer_name: str, button: QToolButton):
-        """Accepting the prompt will remove the shot from the scene; shot-specific set, lights group, camera,
-        render layers will be removed and the model will be updated to reflect these changes.
+        """Accepting the prompt will remove the shot from the scene; 
+        shot-specific set, lights group, camera,render layers will be 
+        removed and the model will be updated to reflect these changes.
 
-            Args:
-                layer_name (str): name of the layer
-                button (QToolButton): Instance of the remove button that was pressed.
+        Args:
+            layer_name (str): name of the layer
+            button (QToolButton): Instance of the remove button that was pressed.
         """
 
         message_text = "Do you want to delete this render layer?"
 
-        confirm_window = QtWidgets.QMessageBox()
+        confirm_window = QMessageBox()
         confirm_window.setWindowTitle("Remove layer")
         confirm_window.setInformativeText(message_text)
-        confirm_window.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        confirm_window.setStandardButtons(
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
 
         confirm_window.accepted.connect(QMessageBox.accept(confirm_window))
         confirm_window.accepted.connect(partial(util.delete_render_layer, layer_name))
