@@ -38,11 +38,10 @@ except ModuleNotFoundError:  # Local testing
 import source.utilities as util
 from ui.Paths import Paths
 from ui.ShotManagerUI import ShotManagerWindow
-from source.CustomQTreeWidgetItem import CustomQTreeWidgetItem
-from source.RenderLayer import RenderLayer
-from source.Shot import Shot
-from source.ShotBuilder import ShotBuilder
-from source.LayerCreator import LayerCreator
+from .CustomQTreeWidgetItem import CustomQTreeWidgetItem
+from .RenderLayer import RenderLayer
+from .Shot import Shot
+from .creators import LayerCreator, ShotCreator
 
 
 class ShotManager(ShotManagerWindow):   # pylint: disable=too-many-public-methods
@@ -59,13 +58,15 @@ class ShotManager(ShotManagerWindow):   # pylint: disable=too-many-public-method
     manager_instance = None     # maintain a single instance of the dialog in Production
 
     def __init__(self, parent=parent):
-        super(ShotManager, self).__init__()
+        super().__init__(parent)
 
         self.data_file_directory = Paths.return_shot_data_full_filepath()  # Path to data file
         self.data_directory = Paths.return_shot_data_directory()  # Path to data folder
-        self.data = util.shot_data_directory()      # Path to the JSON file
+        self.data = util.shot_data_directory()      # Returns the dictionary inside JSON
         self.style_sheet = util.load_frame_style()
         self.setup_ui(self)
+        
+        print(self.data_file_directory, self.data)
 
         self.root = self.shotList_treeWidget.invisibleRootItem()
         self.root_index = self.shotList_treeWidget.indexFromItem(self.root)
@@ -76,7 +77,7 @@ class ShotManager(ShotManagerWindow):   # pylint: disable=too-many-public-method
 
         # Runs in Maya only
 
-        if self.maya_is_loaded():
+        if util.maya_is_loaded():
             util.set_redshift_renderer()
             util.set_correct_fps()
             util.create_default_groups()
@@ -90,6 +91,7 @@ class ShotManager(ShotManagerWindow):   # pylint: disable=too-many-public-method
         """ Connects all button signals to their respective functions.
         """
         
+        # pylint: disable=unnecessary-lambda
         self.newShot_button.clicked.connect(lambda: self.show_shot_builder())
         self.newLayer_button.clicked.connect(lambda: self.get_selection())
         self.newLayer_button.clicked.connect(lambda: self.show_layer_creator())
@@ -135,32 +137,29 @@ class ShotManager(ShotManagerWindow):   # pylint: disable=too-many-public-method
     def show_shot_builder(self):
         """Shows the Shot Builder Dialog."""
 
-        sb_window = ShotBuilder(self)
+        # pylint: disable=unnecessary-lambda
+        sb_window = ShotCreator(self)
         sb_window.add_shots_button.clicked.connect(lambda: sb_window.write_data())
-        sb_window.add_shots_button.clicked.connect(lambda: self.set_up_model(ShotManager().data))
-        # sb_window.addShots_button.clicked.connect(lambda: sb_window.accept())
+        sb_window.add_shots_button.clicked.connect(
+            lambda: self.set_up_model(ShotManager().data))
         sb_window.add_shots_button.clicked.connect(lambda: self.deleteLater())
         sb_window.add_shots_button.clicked.connect(lambda: self.show_ui())
         sb_window.show()
-
-    def show_layer_creator(self):
+    
+    def show_layer_creator(self):   
         """Shows the Layer Creator Dialog."""
-
+        
+        # pylint: disable=unnecessary-lambda
         lc_window = LayerCreator(self)
         lc_window.createLayers_button.clicked.connect(
             lambda: lc_window.add_new_layers(self.data, self.get_selection()))
-        lc_window.createLayers_button.clicked.connect(lambda: self.set_up_model(self.data))
-        lc_window.createLayers_button.clicked.connect(lambda: self.add_render_layer_widget())
-        lc_window.createLayers_button.clicked.connect(lambda: lc_window.accept())
+        lc_window.createLayers_button.clicked.connect(
+            lambda: self.set_up_model(self.data))
+        lc_window.createLayers_button.clicked.connect(
+            lambda: self.add_render_layer_widget())
+        lc_window.createLayers_button.clicked.connect(
+            lambda: lc_window.accept())
         lc_window.show()
-
-    def maya_is_loaded(self):
-        """Returns True if Maya is loaded, else False."""
-        
-        if "maya" in sys.modules:
-            return True
-
-        return False
 
     #############################################
     # ---------> DATA MANAGEMENT <----------
@@ -170,93 +169,81 @@ class ShotManager(ShotManagerWindow):   # pylint: disable=too-many-public-method
         """ Writes the data to JSON file."""
 
         if self.data_file_directory is not None:
-            with open(self.data_file_directory, "w") as data_dump:
+            with open(self.data_file_directory, encoding="utf-8", mode="w") as data_dump:
                 json.dump(data, data_dump, indent=4)
 
-    def set_up_model(self, shot_data):
-        """Reads in the JSON file and applies the view to the model.
+    def check_existing_widgets(self):
+        """Checks which shots already exist as widgets in the tree structure."""
 
-        Args:
-            shot_data (dict) : A JSON file containing shot information.
-        """
-
-        tree_widget = self.shotList_treeWidget
-        root = self.root
         widget_list = []
 
         # Check for existing widgets in the tree
-        widget_count = root.childCount()
+        widget_count = self.root.childCount()
 
         for number in range(0, widget_count):
-            widget_item = root.child(number)
-            name = tree_widget.itemWidget(widget_item, 0).objectName()
+            widget_item = self.root.child(number)
+            name = self.tree_object.itemWidget(widget_item, 0).objectName()
             widget_list.append(name)
+            
+        return widget_list
+            
+    def set_up_model(self, data: dict):
+        """Reads in the JSON file and applies the view to the model.
 
-        if shot_data:
+        Args:
+            data (dict) : A JSON file containing shot information.
+        """
 
-            shot_list = sorted(list(shot_data.keys()))
+        widget_list = self.check_existing_widgets()
+        
+        if data:
+
+            shot_list = sorted(list(data.keys()))
 
             if len(shot_list) > 0:
                 # Create shot items from data model
+                # but don't add shots if they're already in the list
+                to_add_list = [shot for shot in shot_list if shot not in widget_list]
             
-                for shot in shot_list:
+                for shot in to_add_list:
+                    
+                    widget_item = QTreeWidgetItem(shot)
+                    self.root.addChild(widget_item)
 
-                    # Don't add shots if they're already in the list
-                    if shot not in widget_list:
+                    shot_name_dict = data[shot]  # Name of the new shot
+                    shot_color = data[shot]["color"]  # Assigned color
 
-                        widget_item = QTreeWidgetItem(shot)
-                        root.addChild(widget_item)
+                    new_shot_instance = Shot(shot)  # Class Shot
+                    new_shot_instance.update_shot_widgets(shot_name_dict)
+                    new_shot_instance.setObjectName(shot)
+                    new_shot_instance.setParent(self)
 
-                        shot_name_dict = shot_data[shot]  # Name of the new shot
-                        shot_color = shot_data[shot]["color"]  # Assigned color
+                    self.tree_object.setItemWidget(
+                        widget_item, 0, new_shot_instance)  # Class QTreeWidgetItem
 
-                        new_shot_instance = Shot(shot)  # Class Shot
-                        new_shot_instance.update_shot_widgets(shot_name_dict)
-                        new_shot_instance.setObjectName(shot)
-                        new_shot_instance.setParent(self)
+                    widget_item.setSizeHint(0, QSize(550, 75))
+                    Shot.apply_frame_style(new_shot_instance, shot_color)
 
-                        tree_widget.setItemWidget(
-                            widget_item, 0, new_shot_instance)  # Class QTreeWidgetItem
 
-                        widget_item.setSizeHint(0, QSize(550, 75))
+                    new_entry = self.root.child(self.root.childCount() - 1)
+                    
+                    layer_list = sorted(data[shot]["render_layers"])
 
-                        try:
+                    # Create layers per shot
+                    for layer in layer_list:
 
-                            Shot.apply_frame_style(new_shot_instance, shot_color)
+                        child_item = QTreeWidgetItem(layer)
+                        new_entry.addChild(child_item)
 
-                        except TypeError:  # Old json file
+                        new_layer_instance = RenderLayer(layer)
+                        new_layer_instance.update_layer_widgets(shot, layer)
+                        new_layer_instance.setObjectName(layer)
+                        new_layer_instance.setParent(new_shot_instance)
+                        child_item.setSizeHint(0, QSize(550, 60))
 
-                            pass
-
-                        finally:
-
-                            new_entry = root.child(root.childCount() - 1)
-                            layer_list = sorted(shot_data[shot]["render_layers"])
-
-                            # Create layers per shot
-
-                            for layer in layer_list:
-
-                                new_parent = new_entry
-                                child_item = QTreeWidgetItem(layer)
-                                new_parent.addChild(child_item)
-
-                                new_layer_instance = RenderLayer(layer)
-                                new_layer_instance.update_layer_widgets(shot, layer)
-                                new_layer_instance.setObjectName(layer)
-                                new_layer_instance.setParent(new_shot_instance)
-                                child_item.setSizeHint(0, QSize(550, 60))
-
-                                tree_widget.setItemWidget(child_item, 0, new_layer_instance)
-
-                                try:
-
-                                    CustomQTreeWidgetItem.apply_frame_style(
-                                        new_layer_instance, shot_color)
-
-                                except TypeError:  # Old json file
-
-                                    pass
+                        self.tree_object.setItemWidget(child_item, 0, new_layer_instance)
+                        CustomQTreeWidgetItem.apply_frame_style(
+                                new_layer_instance, shot_color)
 
     def update_data(self, shot: str, layer: str | None, key: str, value: str | int):
         """ Updates key - value pair in the dictionary and saves out the JSON file.
@@ -754,7 +741,8 @@ class ShotManager(ShotManagerWindow):   # pylint: disable=too-many-public-method
                 RenderLayer(layer_name).toggle_range_icon(button)
 
     def reset_frame_range(self, button: QToolButton):
-        """ Sets shot frame range to all layers under the shot. Frame range is updated in both JSON and view.
+        """ Sets shot frame range to all layers under the shot. Frame range is updated 
+        in both JSON and view.
 
             Args:
                 button: QToolButton instance

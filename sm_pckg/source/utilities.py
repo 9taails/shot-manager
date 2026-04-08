@@ -1,5 +1,5 @@
 from __future__ import annotations
-
+import sys
 import json
 import json.decoder
 import os
@@ -10,7 +10,7 @@ from PySide6.QtWidgets import QWidget
 from shiboken6 import wrapInstance
 
 from ui.Paths import Paths
-from source.LayerCreator import LayerCreator
+from sm_pckg.source.creators import LayerCreator
 
 try:
     import maya.cmds as mc
@@ -90,6 +90,13 @@ def sequence_exists(shot):
             return True
     return False
 
+def maya_is_loaded():
+    """Returns True if Maya is loaded, else False."""
+    
+    if "maya" in sys.modules:
+        return True
+
+    return False
 
 def get_maya_window():
     """Returns Maya's main window as Python object"""
@@ -200,68 +207,84 @@ def find_latest(search_dir, stream):
         return path_to_project
 
 
-def shot_data_directory():
-    """Checks if there is a file containing shot data. Creates it if it doesn't exist."""
+def shot_data_directory() -> dict:
+    """Checks if there is a file containing shot data. Creates it if it doesn't exist.
+    Returns a dictionary or None.
+    """
+    # Check if directory exists
+    #If no, make dir
+    #If yes, check for file
+    # Path to .shot_manager folder for the current scene
+    data_folder_dir = Paths.return_shot_data_directory()
+    
+    # Path to shot_data.json file
+    data_file_dir = Paths.return_shot_data_full_filepath()
+    
+    # Path to destination folder where .shot_manager should be created
+    dest_dir = Paths.sm_folder
 
-    try:
-        # Path to .shot_manager folder for the current scene
-        data_folder_directory = Paths.return_shot_data_directory()
-        # Path to shot_data.json file
-        data_file_directory = Paths.return_shot_data_full_filepath()
+    # Check if directory exists
+    if not os.path.exists(data_folder_dir):
+        # Directory doesn't exist
+        try:
+            # Try to create the folder
+            os.mkdir(data_folder_dir)
 
-        if not os.path.exists(data_folder_directory):
+        except PermissionError:
+            os.chmod(dest_dir, 777)
+            os.mkdir(data_folder_dir)
+            os.chmod(data_folder_dir, 777)
 
+        # Run again to create the file
+        finally:
+            shot_data_directory()
+        
+    else:
+        # Directory exists
+        try:
+            # Open existing JSON file
+            with open(data_file_dir, encoding="UTF-8", mode="r") as data_read:
+                shot_dict = json.load(data_read)
+        
+        except FileNotFoundError:
+            # File doesn't exist, create an empty dictionary
+            empty_file = dict()
+
+            # Create a new file from the empty dictionary
+            with open(data_file_dir, encoding="UTF-8", mode="w") as data_write:
+                json.dump(empty_file, data_write, indent=4)
+            
+            return empty_file
+        
+        except json.decoder.JSONDecodeError:
+            # Run recursive - delete old file and try again
             try:
-                # Create the folder if it doesn't exist
+                os.remove(data_file_dir)
+                print("File deleted successfully.")
 
-                os.mkdir(data_folder_directory)
-                os.chmod(data_folder_directory, 777)
-
-            except FileExistsError:
-                return data_file_directory
-
-        else:
-
-            try:
-                # Open existing JSON file
-
-                with open(data_file_directory, "r") as data_read:
-                    shot_file = json.load(data_read)
-
-                return shot_file
-
-            except FileNotFoundError:
-
-                # Create an empty dictionary
-
+            except OSError as e:
+                print(f"Error deleting the file: {e}. "\
+                      "Defaulting to root directory.")
+                
+                # Create an emoty dictionary
                 empty_file = dict()
-
+                
+                # Base location
+                root_dir = Paths.base
+                
                 # Create a new file from the empty dictionary
-
-                with open(data_file_directory, "w") as new_data_write:
-                    json.dump(empty_file, new_data_write, indent=4)
-
-                # Open JSON file
-
-                with open(data_file_directory, "r") as data_read:
-                    shot_file = json.load(data_read)
-
-                return shot_file
-
-            except json.decoder.JSONDecodeError:
-                try:
-                    os.remove(data_file_directory)
-                    print("File deleted successfully.")
-
-                except OSError as e:
-                    print(f"Error deleting the file: {e}")
-
-                else:
-                    shot_data_directory()
-
-    except TypeError:
-        print("Save your scene inside the project structure and try again!")
-
+                with open(root_dir, encoding="UTF-8", mode="w") as data_write:
+                    json.dump(empty_file, data_write, indent=4)
+                    
+                print(f"File has been created in {root_dir}.")
+                
+                return empty_file
+                  
+            else:
+                shot_data_directory()
+        
+        else:
+           return shot_dict 
 
 def load_style_sheet():
     """Loads the file with style sheets for the application."""

@@ -1,6 +1,7 @@
-from PySide6.QtWidgets import QApplication
 import sys
-from ShotManager import ShotManager
+from PySide6.QtWidgets import QApplication
+from source.ShotManager import ShotManager
+
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
