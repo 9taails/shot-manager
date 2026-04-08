@@ -23,7 +23,7 @@ from PySide6.QtWidgets import (
 )
 
 from CustomQTreeWidgetItem import CustomQTreeWidgetItem
-from ui.Paths import Paths
+from ShotManager.ui.Paths import Paths
 import utilities as util
 
 

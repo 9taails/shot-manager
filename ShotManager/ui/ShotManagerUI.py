@@ -22,7 +22,7 @@ from PySide6.QtWidgets import (
     QMainWindow
 )
 
-from ui.Paths import Paths
+from ShotManager.ui.Paths import Paths
 
 
 class ShotManagerWindow(QMainWindow):

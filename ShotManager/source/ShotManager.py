@@ -45,13 +45,13 @@ try:
 except ModuleNotFoundError:  # Local testing
     pass
 
-from source import utilities as util
-from ui.Paths import Paths
-from ui.ShotManagerUI import ShotManagerWindow
-from source.RenderLayer import RenderLayer
-from source.Shot import Shot
-from source.ShotBuilder import ShotBuilder
-from source.LayerCreator import LayerCreator
+from ShotManager.source import utilities as util
+from ShotManager.ui.Paths import Paths
+from ShotManager.ui.ShotManagerUI import ShotManagerWindow
+from RenderLayer import RenderLayer
+from Shot import Shot
+from ShotBuilder import ShotBuilder
+from LayerCreator import LayerCreator
 
 
 class ShotManager(ShotManagerWindow):

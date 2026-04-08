@@ -18,8 +18,8 @@ except ModuleNotFoundError:  # Local testing
     pass
 
 import utilities as util
-from ui.Paths import Paths
-from ui.LayerCreatorUI import LayerCreatorUI
+from ShotManager.ui.Paths import Paths
+from ShotManager.ui.LayerCreatorUI import LayerCreatorUI
 
 
 class LayerCreator(QDialog, LayerCreatorUI):

@@ -9,7 +9,7 @@ from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QWidget
 from shiboken6 import wrapInstance
 
-from ui.Paths import Paths
+from ShotManager.ui.Paths import Paths
 from LayerCreator import LayerCreator
 
 try:
