@@ -1,6 +1,8 @@
 # Shot Manager
 
-A render layer management tool for Maya/Redshift workflow. It allows for creating, editing and removing multiple render layers at once.
+A render layer management tool for Maya/Redshift workflow. It allows for creating, editing and removing multiple render layers at once. 
+A preview video of how it works can be watched here: 
+https://vimeo.com/1122576817?fl=pl&fe=sh
 
 ## Functionality
 
@@ -36,7 +38,12 @@ Render layer presets
   - Sets can have non-exclusive membership, unlike groups, ie. the same node can be a member of multiple sets
   - Items in the global sets will, by default, go into all render layers. It's useful for scenes where the same objects go into all shots and the only things changing are frame ranges and camera.
 4. Creates default Redshift Visibility sets for background and foreground. Render layer presets already have the correct overrides set up, so for example the foreground layer will have Redshifts Primary Visibility ON for items in the foreground set and OFF for items in the background set.
+5. Imports a template camera rig with a Redshift Bokeh node connected.
 
 ### Limitations
 - One-way sync:
   Shot Manager to Maya only. Any changes made inside Maya to the settings managed by Shot Manager will not update, ie. changing start frame inside a render layer     will not update in Shot Manager. It does not sync pre-existing layers.
+- Default start frame for all new shots:
+  All shots start on frame 1001 when created.
+- Works for animation at 25fps.
+- No customisation is currently implemented; for the script to work, a specific naming convention needs to be followed.
