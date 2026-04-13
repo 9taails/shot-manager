@@ -19,10 +19,12 @@ from PySide6.QtWidgets import (
     QTreeWidget,
     QTreeWidgetItem,
     QAbstractItemView,
-    QMainWindow
+    QMainWindow,
+    QTreeView, 
+    QHeaderView
 )
 
-from ui.Paths import Paths
+from source.util_paths import Paths
 
 
 class ShotManagerWindow(QMainWindow):
@@ -43,7 +45,7 @@ class ShotManagerWindow(QMainWindow):
         shotManager_window.setMaximumSize(QSize(600, 1200))
         shotManager_window.setFont(font)
 
-        style_sheet_file = Paths.ui_file("style_sheet.css")
+        style_sheet_file = Paths.resource_file("style_sheet.css")
 
         # Load the CSS style sheet
         with open(style_sheet_file, "r") as file:
@@ -105,12 +107,13 @@ class ShotManagerWindow(QMainWindow):
 
         self.verticalLayout.addWidget(self.widget, 0, Qt.AlignmentFlag.AlignVCenter)
 
-        self.shotList_treeWidget = QTreeWidget(self.centralwidget)
+        self.shotList_treeWidget = QTreeView()
 
-        __qtreewidgetitem = QTreeWidgetItem()
-        __qtreewidgetitem.setText(0, u"")
+        """ __qtreewidgetitem = QTreeWidgetItem()
+        __qtreewidgetitem.setText(0, u"")"""
+        #header = QHeaderView(Qt.Orientation.Horizontal, self.shotList_treeWidget)
 
-        self.shotList_treeWidget.setHeaderItem(__qtreewidgetitem)
+        #self.shotList_treeWidget.setHeader(header)
         self.shotList_treeWidget.setObjectName(u"shotList_treeWidget")
         self.shotList_treeWidget.setFont(font)
         self.shotList_treeWidget.setSelectionMode(QAbstractItemView.SelectionMode.ContiguousSelection)

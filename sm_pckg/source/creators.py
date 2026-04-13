@@ -16,10 +16,9 @@ try:
 except ModuleNotFoundError:  # Local testing
     pass
 
-import source.utilities as util
-from ui.Paths import Paths
-from ui.ShotBuilderUI import ShotBuilderUI
-from ui.LayerCreatorUI import LayerCreatorUI
+import source.util as util
+from source.util_paths import Paths
+from ui.ui_creators import LayerCreatorUI, ShotCreatorUI
 
 
 class LayerCreator(QDialog, LayerCreatorUI):
@@ -449,7 +448,7 @@ class LayerCreator(QDialog, LayerCreatorUI):
         return layer_color
 
 
-class ShotCreator(QDialog, ShotBuilderUI):
+class ShotCreator(QDialog, ShotCreatorUI):
     """A class for the shot building UI dialog.
 
     This dialog is used to create single or multiple shots in the scene and all the scene elements associated with a

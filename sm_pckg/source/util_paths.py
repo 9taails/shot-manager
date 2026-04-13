@@ -13,7 +13,7 @@ class Paths:
 	sm_folder = os.path.abspath(os.path.join(base, ".."))  	# Path to directory containing .shot_manager
 	temp_files = os.path.join(base, "temp")		# Path to temp folder
 	preset_files = os.path.join(sm_folder, "layer_presets")		# Path to preset folder
-	icons = os.path.join(base, "icons")		# Path to icons folder
+	icons = os.path.join(sm_folder, "ui", "icons")		# Path to icons folder
 	
 
 	@classmethod
@@ -51,12 +51,22 @@ class Paths:
 	@classmethod
 	def ui_file(cls, filename):
 		"""Returns the full file path to files contained in the ui folder.
-		Example: "C:/Users/test/Projects/shotManager_latest/ui/style_sheet.css"
+		Example: "C:/Users/test/Projects/shotManager_latest/ui/ui_manager.py"
 
 		Args:
 			filename = name of the file	with extension, ex. style_sheet.css
 		"""
-		return os.path.join(cls.base, filename)
+		return os.path.join(cls.sm_folder, "ui", filename)
+
+	@classmethod
+	def resource_file(cls, filename):
+		"""Returns the full file path to files contained in the resources folder.
+		Example: "C:/Users/test/Projects/shotManager_latest/resources/style_sheet.css"
+
+		Args:
+			filename = name of the file	with extension, ex. style_sheet.css
+		"""
+		return os.path.join(cls.sm_folder, "resources", filename)
 
 	@classmethod
 	def icon(cls, filename):

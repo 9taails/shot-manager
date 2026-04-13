@@ -9,20 +9,19 @@ from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QWidget
 from shiboken6 import wrapInstance
 
-from ui.Paths import Paths
-from sm_pckg.source.creators import LayerCreator
+from source.util_paths import Paths
+from source.creators import LayerCreator
 
 try:
-    import maya.cmds as mc
-    import maya.mel as mel
-    import maya.app.renderSetup.model.renderSetup as render
-    import maya.app.renderSetup.model.renderLayer as renderLayer
-    import maya.app.renderSetup.model.override as override
-    import maya.app.renderSetup.model.container as container
-    import maya.app.renderSetup.views.overrideUtils as renderUtils
-    import maya.app.renderSetup.model.collection as collection
-    import pymel.core as pm
-    from maya import OpenMayaUI as omui
+    import maya.cmds as mc  # pyright: ignore
+    import maya.mel as mel  # pyright: ignore
+    import maya.app.renderSetup.model.renderSetup as render  # pyright: ignore
+    import maya.app.renderSetup.model.renderLayer as renderLayer  # pyright: ignore
+    import maya.app.renderSetup.model.override as override  # pyright: ignore
+    import maya.app.renderSetup.model.container as container  # pyright: ignore
+    import maya.app.renderSetup.model.collection as collection  # pyright: ignore
+    import pymel.core as pm  # pyright: ignore
+    from maya import OpenMayaUI as omui  # pyright: ignore
 
 except ModuleNotFoundError:
     pass
@@ -72,7 +71,6 @@ def light_exists(shot):
                 return True
     return False
 
-
 def set_exists(shot):
     """Check if a set exists with the given shot name"""
 
@@ -80,7 +78,6 @@ def set_exists(shot):
         if shot in node:
             return True
     return False
-
 
 def sequence_exists(shot):
     """Check if a sequence exists with the given shot name"""
@@ -101,7 +98,7 @@ def maya_is_loaded():
 def get_maya_window():
     """Returns Maya's main window as Python object"""
 
-    ptr = omui.MQtUtil.mainWindow()
+    ptr = omui.MQtUtil.mainWindow()  # pyright: ignore
     maya_window = wrapInstance(int(ptr), QWidget)
 
     return maya_window
@@ -289,7 +286,7 @@ def shot_data_directory() -> dict:
 def load_style_sheet():
     """Loads the file with style sheets for the application."""
 
-    ui_directory = Paths.ui_file("style_sheet.css")
+    ui_directory = Paths.resource_file("style_sheet.css")
 
     with open(ui_directory, "r") as file:
         styles = file.read()
@@ -299,7 +296,7 @@ def load_style_sheet():
 def load_frame_style():
     """Loads the file with style sheets for the QFrame."""
 
-    ui_directory = Paths.ui_file("frame_styles.json")
+    ui_directory = Paths.resource_file("frame_styles.json")
 
     with open(ui_directory, "r") as file:
         styles = json.load(file)
@@ -313,7 +310,7 @@ def return_resource_dict(key: str):
             key (str): name of the key for the dictionary
     """
 
-    dict_directory = Paths.ui_file("dictionaries.json")
+    dict_directory = Paths.resource_file("dictionaries.json")
 
     with open(dict_directory, "r") as file:
         resource_dict = json.load(file)
