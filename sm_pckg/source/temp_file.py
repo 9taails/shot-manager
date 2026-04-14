@@ -108,7 +108,7 @@ class CustomQTreeWidgetItem(QStandardItem):
         else:
             status = "on"
 
-        icon, tooltip = util.return_icon_and_tooltip(button.objectName(), status)
+        icon, tooltip = util.return_icon_tooltip(button.objectName(), status)
 
         button.setIcon(icon)
         button.setToolTip(tooltip)
@@ -145,7 +145,7 @@ class ShotOld(CustomQTreeWidgetItem):
         self.render_button.clicked.connect(lambda: self.toggle_icon(self.render_button))
         self.visibility_button.clicked.connect(lambda: self.toggle_icon(self.visibility_button))
         self.frame_range_button.clicked.connect(lambda: self.toggle_icon(self.frame_range_button))
-        self.change_aov_icon_from_layers_aov_status()
+        self.sync_shot_aovmode()
 
         self.name.textEdited.connect(lambda: self.update_field("name", self.name.text()))
         self.start.editingFinished.connect(lambda: self.update_field("start", self.start.text()))
@@ -484,7 +484,7 @@ class ShotOld(CustomQTreeWidgetItem):
         except KeyError:
             pass
 
-    def change_aov_icon_from_layers_aov_status(self):
+    def sync_shot_aovmode(self):
         """Toggles the icon and AOV render mode for the render layer."""
 
         data = util.shot_data_directory()
@@ -509,15 +509,15 @@ class ShotOld(CustomQTreeWidgetItem):
         if list_len == 1:
 
             if status_list[0] == 0:     # All AOV modes are off
-                icon, tooltip = util.return_icon_and_tooltip("aov_button", "off")
+                icon, tooltip = util.return_icon_tooltip("aov_button", "off")
                 b.setChecked(False)
 
             else:    # All AOV modes are on
-                icon, tooltip = util.return_icon_and_tooltip("aov_button", "on")
+                icon, tooltip = util.return_icon_tooltip("aov_button", "on")
                 b.setChecked(True)
 
         else:
-            icon, tooltip = util.return_icon_and_tooltip("aov_button", "mid")
+            icon, tooltip = util.return_icon_tooltip("aov_button", "mid")
             b.setChecked(True)
 
         b.setIcon(icon)
@@ -548,7 +548,7 @@ class RenderLayerOld(CustomQTreeWidgetItem):
         self.visibility_button.toggled.connect(lambda: self.toggle_style_frame())
         self.aov_button.clicked.connect(lambda: self.aov_button.toggle())
         self.aov_button.toggled.connect(lambda: self.toggle_icon(self.aov_button))
-        self.aov_button.clicked.connect(lambda: self.toggle_aov_mode_checked(self.aov_button))
+        self.aov_button.clicked.connect(lambda: self.toggle_button(self.aov_button))
         self.aov_beauty_button.clicked.connect(lambda: self.aov_beauty_button.toggle())
         self.aov_beauty_button.toggled.connect(lambda: self.toggle_icon(self.aov_beauty_button))
         self.aov_utility_button.clicked.connect(lambda: self.aov_utility_button.toggle())
@@ -652,14 +652,14 @@ class RenderLayerOld(CustomQTreeWidgetItem):
         self.aov_button = QToolButton()
         self.aov_button.setObjectName("aov_button")
         self.aov_button.setCheckable(True)
-        icon, tooltip = util.return_icon_and_tooltip("aov_button", "off")
+        icon, tooltip = util.return_icon_tooltip("aov_button", "off")
         self.aov_button.setIcon(icon)
         self.aov_button.setToolTip(tooltip)
 
         self.aov_beauty_button = QToolButton()
         self.aov_beauty_button.setObjectName("aov_beauty_button")
         self.aov_beauty_button.setCheckable(True)
-        icon_1, tooltip_1 = util.return_icon_and_tooltip("aov_beauty_button", "on")
+        icon_1, tooltip_1 = util.return_icon_tooltip("aov_beauty_button", "on")
         self.aov_beauty_button.setIcon(icon_1)
         self.aov_beauty_button.setToolTip(tooltip_1)
         self.aov_beauty_button.setIconSize(aov_icon_size)
@@ -667,7 +667,7 @@ class RenderLayerOld(CustomQTreeWidgetItem):
         self.aov_utility_button = QToolButton()
         self.aov_utility_button.setObjectName("aov_utility_button")
         self.aov_utility_button.setCheckable(True)
-        icon_2, tooltip_2 = util.return_icon_and_tooltip("aov_utility_button", "on")
+        icon_2, tooltip_2 = util.return_icon_tooltip("aov_utility_button", "on")
         self.aov_utility_button.setIcon(icon_2)
         self.aov_utility_button.setIconSize(aov_icon_size)
         self.aov_utility_button.setToolTip(tooltip_2)
@@ -778,11 +778,11 @@ class RenderLayerOld(CustomQTreeWidgetItem):
             # Check renderable status and set .isChecked for button and correct icon
             if renderable is not None:
                 if renderable:
-                    icon, tooltip = util.return_icon_and_tooltip("render_button", "on")
+                    icon, tooltip = util.return_icon_tooltip("render_button", "on")
                     self.render_button.setChecked(True)
 
                 else:
-                    icon, tooltip = util.return_icon_and_tooltip("render_button", "off")
+                    icon, tooltip = util.return_icon_tooltip("render_button", "off")
                     self.render_button.setChecked(False)
 
                 self.render_button.setIcon(icon)
@@ -791,10 +791,10 @@ class RenderLayerOld(CustomQTreeWidgetItem):
             # Check for the AOV mode key and value. Set .isChecked for button and correct icon.
             if aov_mode is not None:
                 if aov_mode == 1:
-                    icon, tooltip = util.return_icon_and_tooltip("aov_button", "on")
+                    icon, tooltip = util.return_icon_tooltip("aov_button", "on")
 
                 else:
-                    icon, tooltip = util.return_icon_and_tooltip("aov_button", "off")
+                    icon, tooltip = util.return_icon_tooltip("aov_button", "off")
 
                 self.aov_button.setToolTip(tooltip)
                 self.aov_button.setIcon(icon)
@@ -810,14 +810,14 @@ class RenderLayerOld(CustomQTreeWidgetItem):
 
                     if "beauty" in aovs:
 
-                        icon_beauty, tooltip_beauty = util.return_icon_and_tooltip("aov_beauty_button", "on")
+                        icon_beauty, tooltip_beauty = util.return_icon_tooltip("aov_beauty_button", "on")
                         self.aov_beauty_button.setChecked(True)
                         self.aov_beauty_button.setIcon(icon_beauty)
                         self.aov_beauty_button.setToolTip(tooltip_beauty)
 
                     elif "utility" in aovs:
 
-                        icon_utility, tooltip_utility = util.return_icon_and_tooltip("aov_utility_button", "on")
+                        icon_utility, tooltip_utility = util.return_icon_tooltip("aov_utility_button", "on")
                         self.aov_utility_button.setChecked(True)
                         self.aov_utility_button.setIcon(icon_utility)
                         self.aov_utility_button.setToolTip(tooltip_utility)
@@ -871,18 +871,18 @@ class RenderLayerOld(CustomQTreeWidgetItem):
         status = self.compare_range_values()
 
         if not status:
-            icon, tooltip = util.return_icon_and_tooltip("frame_range_button", "on")
+            icon, tooltip = util.return_icon_tooltip("frame_range_button", "on")
             button.setChecked(True)
 
         else:
-            icon, tooltip = util.return_icon_and_tooltip("frame_range_button", "off")
+            icon, tooltip = util.return_icon_tooltip("frame_range_button", "off")
             button.setChecked(False)
 
         button.setIcon(icon)
         button.setToolTip(tooltip)
 
     @staticmethod
-    def toggle_aov_mode_checked(button: QToolButton):
+    def toggle_button(button: QToolButton):
 
         if button.isChecked():
             button.setChecked(False)
@@ -1074,14 +1074,14 @@ def setup_ui(self):
         self.aov_button = QToolButton()
         self.aov_button.setObjectName("aov_button")
         self.aov_button.setCheckable(True)
-        icon, tooltip = util.return_icon_and_tooltip("aov_button", "off")
+        icon, tooltip = util.return_icon_tooltip("aov_button", "off")
         self.aov_button.setIcon(icon)
         self.aov_button.setToolTip(tooltip)
 
         self.aov_beauty_button = QToolButton()
         self.aov_beauty_button.setObjectName("aov_beauty_button")
         self.aov_beauty_button.setCheckable(True)
-        icon_1, tooltip_1 = util.return_icon_and_tooltip("aov_beauty_button", "on")
+        icon_1, tooltip_1 = util.return_icon_tooltip("aov_beauty_button", "on")
         self.aov_beauty_button.setIcon(icon_1)
         self.aov_beauty_button.setToolTip(tooltip_1)
         self.aov_beauty_button.setIconSize(aov_icon_size)
@@ -1089,7 +1089,7 @@ def setup_ui(self):
         self.aov_utility_button = QToolButton()
         self.aov_utility_button.setObjectName("aov_utility_button")
         self.aov_utility_button.setCheckable(True)
-        icon_2, tooltip_2 = util.return_icon_and_tooltip("aov_utility_button", "on")
+        icon_2, tooltip_2 = util.return_icon_tooltip("aov_utility_button", "on")
         self.aov_utility_button.setIcon(icon_2)
         self.aov_utility_button.setIconSize(aov_icon_size)
         self.aov_utility_button.setToolTip(tooltip_2)

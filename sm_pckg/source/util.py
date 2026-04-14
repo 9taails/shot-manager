@@ -1405,7 +1405,7 @@ def toggle_aov_enabled_override(layer: str, aov_group: str, override_value: int)
             create_crypto_collections(layer, override_value)
 
 
-def return_icon_and_tooltip(button_name, status):
+def return_icon_tooltip(button_name, status):
 
     icon_dict = return_resource_dict("BUTTON_ICONS")
     tooltip_dict = return_resource_dict("TOOLTIPS")

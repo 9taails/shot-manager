@@ -317,6 +317,7 @@ class ShotManager(ShotManagerWindow):   # pylint: disable=too-many-public-method
 
             for button in buttons:
                 button_name = button.objectName()
+                button_name = button.objectName() # This is fine, button is a QToolButton
                 try:
                     self.toggle_shot_icon_and_tooltip(shot_widget, button, button_name)
                 except AttributeError:      # Sometimes, it can't find the button on init
@@ -345,6 +346,7 @@ class ShotManager(ShotManagerWindow):   # pylint: disable=too-many-public-method
         for b in layer_buttons:
 
             layer_name = RenderLayer.return_layer_name_by_widget(b)
+            layer_name = CustomWidgetBase.get_widget_name_from_child(b) # Use static helper method
 
             if isinstance(b, QToolButton):
 
@@ -398,7 +400,7 @@ class ShotManager(ShotManagerWindow):   # pylint: disable=too-many-public-method
             status = "off"
             shot_button.setChecked(False)
 
-        icon, tooltip = util.return_icon_and_tooltip(button_name, status)
+        icon, tooltip = util.return_icon_tooltip(button_name, status)
 
         shot_button.setIcon(icon)
         shot_button.setToolTip(tooltip)
@@ -424,7 +426,7 @@ class ShotManager(ShotManagerWindow):   # pylint: disable=too-many-public-method
             status = "off"
             button.setChecked(False)
 
-        icon, tooltip = util.return_icon_and_tooltip(button_name, status)
+        icon, tooltip = util.return_icon_tooltip(button_name, status)
 
         button.setIcon(icon)
         button.setToolTip(tooltip)
@@ -448,6 +450,7 @@ class ShotManager(ShotManagerWindow):   # pylint: disable=too-many-public-method
             parent_button = shot.return_child_widget(button_name)
 
             shot_name = shot.return_shot_name(parent_button)
+            shot_name = CustomWidgetBase.get_widget_name_from_child(parent_button) # Use static helper method
             layer_name = shot_name + "master"
 
             self.toggle_shot_icon_and_tooltip(shot_widget, parent_button, button_name)
@@ -555,12 +558,15 @@ class ShotManager(ShotManagerWindow):   # pylint: disable=too-many-public-method
             # Get layer name
             layer_name = RenderLayer.return_layer_name_by_widget(b)
 
+            
             # Get shot name
             shot_name = RenderLayer(layer_name).return_shot_name(b)
+            shot_name = CustomWidgetBase.get_widget_name_from_child(b)[:4] # Get layer name, then slice for shot name
 
             # Get Shot
             shot = self.root.treeWidget().findChild(Shot, shot_name)
 
+            
             # Get shot widget of type QTreeWidgetItem
             shot_widget = self.return_respective_type(shot, self.root, "QTreeWidgetItem")
 
@@ -622,8 +628,9 @@ class ShotManager(ShotManagerWindow):   # pylint: disable=too-many-public-method
                 field: Shot start or end edit field
         """
 
-        parent: Shot = Shot.return_parent(field)  # Get Shot parent of the field widget
-        shot_name = parent.shot_name  # Get the name of the shot
+        parent = field.parent()  # Get Shot parent of the field widget
+        print(self.parent)
+        shot_name = Shot.return_shot_name(field) # Get the name of the shot
         shot_value = int(field.text())  # Get the current value of the shot
 
         shot_field_name = field.objectName()  # ex: shot_start
@@ -638,7 +645,8 @@ class ShotManager(ShotManagerWindow):   # pylint: disable=too-many-public-method
         # Loop over each layer's edit widget;
         # Get the name of the layer
         # Get the frame icon for the layer and check its status
-        for layer_edit_field in layer_edit_widgets:
+
+        for layer_edit_field in layer_edit_widgets: # This needs to be updated to access ui.start/ui.end
 
             layer_name = RenderLayer.return_layer_name_by_widget(layer_edit_field)
 
@@ -674,6 +682,7 @@ class ShotManager(ShotManagerWindow):   # pylint: disable=too-many-public-method
         layer_name = parent.layer_name
         layer_value = int(field.text())
         shot_name = parent.return_shot_name(field)
+        shot_name = CustomWidgetBase.get_widget_name_from_child(field)[:4] # Get layer name, then slice for shot name
 
         field_object_name = field.objectName()
         field_name = field_object_name.split("_")[1]
@@ -713,6 +722,7 @@ class ShotManager(ShotManagerWindow):   # pylint: disable=too-many-public-method
                 index = layer_widgets.index(edit_widget)
                 button = button_widgets[index]
                 layer_name = RenderLayer.return_layer_name_by_widget(edit_widget)
+                layer_name = CustomWidgetBase.get_widget_name_from_child(edit_widget) # Use static helper method
 
                 edit_widget.editingFinished.connect(partial(self.set_layer_frame_range, edit_widget))
                 edit_widget.editingFinished.connect(partial(RenderLayer(layer_name).toggle_range_icon, button))
@@ -734,6 +744,7 @@ class ShotManager(ShotManagerWindow):   # pylint: disable=too-many-public-method
             for button in button_widgets:
                 button: QToolButton
                 layer_name = RenderLayer.return_layer_name_by_widget(button)
+                layer_name = CustomWidgetBase.get_widget_name_from_child(button) # Use static helper method
                 RenderLayer(layer_name).toggle_range_icon(button)
 
     def reset_frame_range(self, button: QToolButton):
@@ -746,12 +757,13 @@ class ShotManager(ShotManagerWindow):   # pylint: disable=too-many-public-method
         """
 
         button.setChecked(False)
-        icon, tooltip = util.return_icon_and_tooltip(button.objectName(), "off")
+        icon, tooltip = util.return_icon_tooltip(button.objectName(), "off")
 
         button.setIcon(icon)
         button.setToolTip(tooltip)
 
         layer_name = RenderLayer.return_layer_name_by_widget(button)
+        layer_name = CustomWidgetBase.get_widget_name_from_child(button) # Use static helper method
         shot_name = RenderLayer(layer_name).shot_name
 
         start_value = self.data[shot_name]["start"]
@@ -788,9 +800,11 @@ class ShotManager(ShotManagerWindow):   # pylint: disable=too-many-public-method
 
             # Get layer name
             layer_name = RenderLayer.return_layer_name_by_widget(button)
+            layer_name = CustomWidgetBase.get_widget_name_from_child(button) # Use static helper method
 
             # Get shot name
             shot_name = RenderLayer(layer_name).return_shot_name(button)
+            shot_name = CustomWidgetBase.get_widget_name_from_child(button)[:4] # Get layer name, then slice for shot name
 
             # Check the status of all shot's layers and toggle the icon for the parent shot
             button.clicked.connect(partial(self.set_shot_buttons_indicator_color))
@@ -809,8 +823,11 @@ class ShotManager(ShotManagerWindow):   # pylint: disable=too-many-public-method
 
             layer_name = RenderLayer.return_layer_name_by_widget(button)
             shot_name = RenderLayer(layer_name).return_shot_name(button)
+            layer_name = CustomWidgetBase.get_widget_name_from_child(button) # Use static helper method
+            shot_name = CustomWidgetBase.get_widget_name_from_child(button)[:4] # Get layer name, then slice for shot name
 
             layers_list = data[shot_name]["render_layers"]
+            layers_list = data[shot_name]["render_layers"] # This is fine
             layer_dict = data[shot_name]["layers"][layer_name]
 
             # Get AOVs list for the layer
@@ -860,6 +877,7 @@ class ShotManager(ShotManagerWindow):   # pylint: disable=too-many-public-method
         """
 
         layer_name = RenderLayer.return_layer_name_by_widget(button)
+        layer_name = CustomWidgetBase.get_widget_name_from_child(button) # Use static helper method
         button_status = parent_button.isChecked()
 
         button.setChecked(button_status)
@@ -903,8 +921,11 @@ class ShotManager(ShotManagerWindow):   # pylint: disable=too-many-public-method
 
             layer_name = RenderLayer.return_layer_name_by_widget(button)
             shot_name = RenderLayer(layer_name).return_shot_name(button)
+            layer_name = CustomWidgetBase.get_widget_name_from_child(button) # Use static helper method
+            shot_name = CustomWidgetBase.get_widget_name_from_child(button)[:4] # Get layer name, then slice for shot name
 
             layers_list = data[shot_name]["render_layers"]
+            layers_list = data[shot_name]["render_layers"] # This is fine
             layer_dict = data[shot_name]["layers"][layer_name]
 
             # Get AOVs list for the layer
@@ -935,6 +956,10 @@ class ShotManager(ShotManagerWindow):   # pylint: disable=too-many-public-method
             layer = RenderLayer.return_layer_name_by_widget(button)
             shot_name = RenderLayer(layer).return_shot_name(button)
             shot = self.root.treeWidget().findChild(Shot, shot_name)
+            
+            layer = CustomWidgetBase.get_widget_name_from_child(button) # Use static helper method
+            shot_name = CustomWidgetBase.get_widget_name_from_child(button)[:4] # Get layer name, then slice for shot name
+            shot = self.root.treeWidget().findChild(Shot, shot_name) # This is fine
             shot_widget = self.return_respective_type(shot, self.root, "QTreeWidgetItem")
             parent_button = shot.return_child_widget(button_name)
 
@@ -958,6 +983,7 @@ class ShotManager(ShotManagerWindow):   # pylint: disable=too-many-public-method
 
         # Get the button's Render Layer name
         layer_name = RenderLayer.return_layer_name_by_widget(button)
+        layer_name = CustomWidgetBase.get_widget_name_from_child(button) # Use static helper method
 
         # Get the AOV type
         mode_name = button_name.split("_")[1]
@@ -999,6 +1025,7 @@ class ShotManager(ShotManagerWindow):   # pylint: disable=too-many-public-method
 
             Args:
             button (QWIdget): instance of the button
+            button (QWidget): instance of the button
             position (QPoint) - pointer to the button's position 
         """
 
@@ -1313,6 +1340,7 @@ class ShotManager(ShotManagerWindow):   # pylint: disable=too-many-public-method
         for b in buttons:
             index = buttons.index(b)
             parent_widget = top_widgets[index]
+            parent_widget = top_widgets[index] # This is fine
             shot_name = Shot.return_shot_name(b)
 
             b.clicked.connect(partial(self.confirm_shot_removal, shot_name, parent_widget, b))
@@ -1324,6 +1352,7 @@ class ShotManager(ShotManagerWindow):   # pylint: disable=too-many-public-method
 
         for b in delete_buttons:
             delete_button = b[0]
+            delete_button = b[0] # This is fine
             layer_name = RenderLayer.return_layer_name_by_widget(delete_button)
 
             delete_button.clicked.connect(partial(self.confirm_layer_removal, layer_name, delete_button))
@@ -1419,6 +1448,7 @@ class ShotManager(ShotManagerWindow):   # pylint: disable=too-many-public-method
 
                 layer_name = RenderLayer.return_layer_name_by_widget(delete_button)
                 shot_name = RenderLayer(layer_name).return_shot_name(button)
+                shot_name = CustomWidgetBase.get_widget_name_from_child(button)[:4] # Get layer name, then slice for shot name
                 layers = self.data[shot_name]["render_layers"]
                 new_layer_list = [layer for layer in layers if layer != layer_name]
                 new_data[shot_name]["render_layers"] = new_layer_list
@@ -1459,6 +1489,7 @@ class ShotManager(ShotManagerWindow):   # pylint: disable=too-many-public-method
                 shot_widget.addChild(child_item)
 
                 new_layer_instance = RenderLayer(layer)
+                new_layer_instance = RenderLayer(layer) # This is fine
                 new_layer_instance.update_layer_widgets(shot_name, layer)
                 new_layer_instance.setObjectName(layer)
                 new_layer_instance.render_button.setChecked(True)
@@ -1467,6 +1498,7 @@ class ShotManager(ShotManagerWindow):   # pylint: disable=too-many-public-method
                 CustomQTreeWidgetItem.apply_frame_style(new_layer_instance, layer_color)
                 child_item.setSizeHint(0, QSize(440, 60))
 
+                
             self.set_layer_renderable()
             self.update_layer_count(shot_name, str(len(layer_list)))
 
@@ -1526,7 +1558,7 @@ class ShotManager(ShotManagerWindow):   # pylint: disable=too-many-public-method
         # Create a tool button for each color
         for col, color_name in enumerate(colors.keys()):
 
-            icon, tooltip = util.return_icon_and_tooltip("color_button", color_name)
+            icon, tooltip = util.return_icon_tooltip("color_button", color_name)
 
             color_button = QToolButton(dialog)
             color_button.setIcon(icon)
@@ -1572,7 +1604,7 @@ class ShotManager(ShotManagerWindow):   # pylint: disable=too-many-public-method
             try:
                 util.delete_shot_elements(shot_name)
                 self.delete_all_shot_layers(parent_widget)
-            except NameError:       # Maya not loaded
+            except NameError: # Maya not loaded
                 pass
             self.remove_shot_widget(button)
         else:
