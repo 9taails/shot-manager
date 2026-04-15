@@ -80,8 +80,8 @@ class Path:
         """
         return os.path.join(cls.icons, filename)
 
-@staticmethod
-def temp_dir():
+@classmethod
+def temp_dir(cls): # pylint: disable=unused-argument
     """ Creates a temporary render layer in the temp folder, before renaming
         and saving the proper render layer file in the correct location.
     """
