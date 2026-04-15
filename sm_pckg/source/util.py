@@ -200,7 +200,7 @@ def find_latest(search_dir, stream):
 
     else:
 
-        path_to_project = Paths.sm_folder()
+        path_to_project = Paths.sm_folder
         return path_to_project
 
 
@@ -288,7 +288,7 @@ def load_style_sheet():
 
     ui_directory = Paths.resource_file("style_sheet.css")
 
-    with open(ui_directory, "r") as file:
+    with open(ui_directory, encoding="UTF-8", mode="r") as file:
         styles = file.read()
     return styles
 
@@ -298,7 +298,7 @@ def load_frame_style():
 
     ui_directory = Paths.resource_file("frame_styles.json")
 
-    with open(ui_directory, "r") as file:
+    with open(ui_directory, encoding="UTF-8", mode="r") as file:
         styles = json.load(file)
     return styles
 
@@ -312,7 +312,7 @@ def return_resource_dict(key: str):
 
     dict_directory = Paths.resource_file("dictionaries.json")
 
-    with open(dict_directory, "r") as file:
+    with open(dict_directory, encoding="UTF-8", mode="r") as file:
         resource_dict = json.load(file)
 
     return resource_dict[key]
@@ -999,37 +999,24 @@ def delete_render_layer(layer):
     unsorted_cols = rl.getCollections()
 
     if unsorted_cols and len(unsorted_cols) != 0:
-
         for c in unsorted_cols:
-
             unsorted_child_type = mc.nodeType(c.name())
 
             for ci2 in col_set:
-
                 if unsorted_child_type == ci2:
-
                     for ci3 in col_set:
-
                         c3Type = mc.nodeType(c.name())
-
                         if c3Type == ci3:
                             override.delete(c)
-
                     if c.hasSelector:
                         c._deleteSelector()
-
                     container.delete(c)
-
             for oi2 in ov_set:
-
                 if unsorted_child_type == oi2:
                     override.delete(c)
-
             if c.hasSelector:
                 c._deleteSelector()
-
             container.delete(c)
-
     renderLayer.delete(rl)
 
 
@@ -1097,11 +1084,9 @@ def get_layer_info_from_view(data: dict, shot_name: str, layer_name: str):
         name = override.name()
 
         if "start" in name:
-
             mc.setAttr(name + ".attrValue", start)
 
         elif "end" in name:
-
             mc.setAttr(name + ".attrValue", end)
 
 
@@ -1238,9 +1223,7 @@ def aov_collection_exists(layer: str, aov: str):
 
             if aov in aov_name:
                 return collection
-
-    else:
-        return None
+    return None
 
 
 def aov_override_exists(layer: str, aov: str):

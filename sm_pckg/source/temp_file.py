@@ -538,7 +538,7 @@ class RenderLayerOld(CustomQTreeWidgetItem):
         self.data_file_directory = Paths.return_shot_data_full_filepath()  # Path to data file
         self.layer_name = layer_name
         self.shot_name = self.layer_name[:4]
-        self.data_model = RenderLayerDataModel(self.data_file_directory)
+        self.data_model = DataModel(self.data_file_directory)
         self.setup_ui()
 
         # Connect signals and slots
@@ -733,7 +733,7 @@ class RenderLayerOld(CustomQTreeWidgetItem):
 
         # ---> End layout
 
-    def update_layer_widgets(self, shot, layer):
+    def update_widget_name_value(self, shot, layer):
         """
         Updates the render layer widget with the layer information from JSON file.
 
@@ -804,7 +804,7 @@ class RenderLayerOld(CustomQTreeWidgetItem):
             if aovs is not None:
                 if isinstance(aovs, int):
                     aov_list = ([], 0)
-                    RenderLayerDataModel(self.data_file_directory).update_layer(shot, layer, "AOVs", aov_list)
+                    DataModel(self.data_file_directory).update_layer(shot, layer, "AOVs", aov_list)
 
                 else:
 
@@ -963,7 +963,7 @@ for shot in to_add_list:
                         parent_item.appendRow(child_item)
 
                         new_layer_instance = RenderLayer(layer)
-                        new_layer_instance.update_layer_widgets(shot, layer)
+                        new_layer_instance.update_widget_name_value(shot, layer)
                         new_layer_instance.setObjectName(layer)
                         new_layer_instance.setParent(new_shot_instance)
                         child_item.setSizeHint(QSize(550, 60))

@@ -61,7 +61,7 @@ class ShotManager(ShotManagerWindow):   # pylint: disable=too-many-public-method
     def __init__(self, parent=parent):
         super().__init__(parent)
 
-        self.data_file_directory = Paths.return_shot_data_full_filepath()  # Path to data file
+        self.data_file = Paths.return_shot_data_full_filepath()  # Path to data file
         self.data_directory = Paths.return_shot_data_directory()  # Path to data folder
         self.data = util.shot_data_directory()      # Returns the dictionary inside JSON
         self.style_sheet = util.load_frame_style()
@@ -171,8 +171,8 @@ class ShotManager(ShotManagerWindow):   # pylint: disable=too-many-public-method
     def write_data(self, data: dict):
         """ Writes the data to JSON file."""
 
-        if self.data_file_directory is not None:
-            with open(self.data_file_directory, encoding="utf-8", mode="w") as data_dump:
+        if self.data_file is not None:
+            with open(self.data_file, encoding="utf-8", mode="w") as data_dump:
                 json.dump(data, data_dump, indent=4)
 
     def check_existing_widgets(self):
@@ -1080,7 +1080,7 @@ class ShotManager(ShotManagerWindow):   # pylint: disable=too-many-public-method
 
                     if shot in layer:
                         new_layer_name = layer.replace(shot, new_name)
-                        RenderLayer(layer).update_layer_widgets(new_name, new_layer_name)
+                        RenderLayer(layer).update_widget_name_value(new_name, new_layer_name)
 
                 util.rename_shot_elements(shot, new_name)
                 self.deleteLater()
@@ -1125,7 +1125,7 @@ class ShotManager(ShotManagerWindow):   # pylint: disable=too-many-public-method
         # Update view
         # Write data to JSON file in a separate thread
 
-        with open(self.data_file_directory, encoding="utf-8", mode="w") as data_dump:
+        with open(self.data_file, encoding="utf-8", mode="w") as data_dump:
             json.dump(data, data_dump, indent=4)
 
     ##########################################
@@ -1490,7 +1490,7 @@ class ShotManager(ShotManagerWindow):   # pylint: disable=too-many-public-method
 
                 new_layer_instance = RenderLayer(layer)
                 new_layer_instance = RenderLayer(layer) # This is fine
-                new_layer_instance.update_layer_widgets(shot_name, layer)
+                new_layer_instance.update_widget_name_value(shot_name, layer)
                 new_layer_instance.setObjectName(layer)
                 new_layer_instance.render_button.setChecked(True)
 

@@ -29,7 +29,7 @@ class LayerCreator(QDialog, LayerCreatorUI):
     def __init__(self, parent):
         super(LayerCreator, self).__init__(parent)
 
-        self.data_file_directory = Paths.return_shot_data_full_filepath() # Path to data file
+        self.data_file = Paths.return_shot_data_full_filepath() # Path to data file
         self.data_directory = Paths.return_shot_data_directory()  # Path to data folder
         self.style_sheet = util.load_frame_style()
 
@@ -50,8 +50,8 @@ class LayerCreator(QDialog, LayerCreatorUI):
     def update_data(self, data: dict):
         """ Writes the data to JSON file."""
 
-        if self.data_file_directory is not None:
-            with open(self.data_file_directory, "w") as data_dump:
+        if self.data_file is not None:
+            with open(self.data_file, "w") as data_dump:
                 json.dump(data, data_dump, indent=4)
 
     def toggle_custom_input(self):
@@ -463,7 +463,7 @@ class ShotCreator(QDialog, ShotCreatorUI):
         super(ShotCreator, self).__init__(parent)
 
         self.data_filepath = Paths.return_shot_data_full_filepath()  # Path to data file
-        self.data_file_directory = Paths.return_shot_data_directory()  # Path to data folder
+        self.data_file = Paths.return_shot_data_directory()  # Path to data folder
 
         self.setup_ui(self)
         self.add_shots_button.clicked.connect(lambda: self.write_data())

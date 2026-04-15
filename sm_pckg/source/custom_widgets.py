@@ -5,6 +5,9 @@ used as part of model-view architecture inside the Shot Manager.
 widgets (subclassed from the custom base) and the StyledItemDelegate.
 The module also holds the model logic class for the RenderLayer.
 """
+from PySide6.QtWidgets import (
+    QToolButton
+)
 
 import json
 
@@ -25,13 +28,16 @@ from PySide6.QtWidgets import (
 
 from source.util_paths import Paths
 from source import util
-from sm_pckg.ui.ui_widgets import UI
+from ui.ui_widgets import UI
+
 
 class ShotManagerDelegate(QStyledItemDelegate):
     """ Delegate to handle custom widgets (Shot/RenderLayer) in the TreeView. """
     # pylint: disable=invalid-name,unused-argument,useless-parent-delegation
     def __init__(self, parent=None):
         super().__init__(parent)
+
+        self.data_file = Paths.return_shot_data_full_filepath()
 
     def createEditor(self, parent, option, index):
         """ Creates the editor responsible for drawing the widget delegate.
@@ -51,8 +57,8 @@ class ShotManagerDelegate(QStyledItemDelegate):
             widget = Shot(name)
             widget.setParent(parent)
             # Sync with data
-            data = util.shot_data_directory().get(name, {})
-            widget.update_shot_widgets(data)
+            data = DataModel(self.data_file).return_shot_dict(name)
+            widget.update_widget_names_values(data)
             return widget
 
         if item_type == "RenderLayer":
@@ -60,7 +66,9 @@ class ShotManagerDelegate(QStyledItemDelegate):
             widget.setParent(parent)
             # Find parent shot name (stored in UserRole + 2 for layers)
             shot_name = index.data(Qt.ItemDataRole.UserRole + 2)
-            widget.update_layer_widgets(shot_name, name)
+            # Sync with data
+            data = DataModel(self.data_file).return_layer_dict(shot_name, name)
+            widget.update_widget_names_values(data)
             return widget
 
         return super().createEditor(parent, option, index)
@@ -109,11 +117,10 @@ class CustomWidgetBase(QWidget):
     def __init__(self, name:str, parent=None):
         super().__init__(parent)
 
-        self.data_file_directory = Paths.return_shot_data_full_filepath()  # Path to data file
+        self.data_file = Paths.return_shot_data_full_filepath()  # Path to data file
         self.name = name
         self.color = self.return_shot_color()
         self.ui = UI(name, self.color, self)
-
 
     def connect_slots(self):
         """ Connects signals and slots. """
@@ -128,29 +135,58 @@ class CustomWidgetBase(QWidget):
                 field_name (str): The name of the field to update.
                 field_value (str): The value of the field to update. """
 
-        data_dict = util.shot_data_directory()
-
         if isinstance(self, Shot):
+            print(field_name, field_value)
             try:
-                data_dict[self.shot_name].update({
-                    field_name: int(field_value)
-                })
-            except ValueError:
-                data_dict[self.shot_name].update({
-                    field_name: field_value
-                })
-
-            with open(self.data_file_directory, encoding="UTF-8", mode="w") as data_dump:
-                json.dump(data_dict, data_dump, indent=4)
-
+                self.data_model.update_shot_dict(
+                    self.shot_name, field_name, field_value)
+            except Exception as e:
+                # Handle the specific exception(s) that may occur during the update
+                print(f"Error updating field: {e}")
         elif isinstance(self, RenderLayer):
             try:
-                self.data_model.update_layer(
+                self.data_model.update_layer_dict(
                     self.shot_name, self.layer_name, field_name, field_value)
             except Exception as e:
                 # Handle the specific exception(s) that may occur during the update
                 print(f"Error updating field: {e}")
 
+    def update_widget_names_values(self, data:dict):
+        """ Updates the render layer widget with the layer information from JSON file.
+            Args:
+                data (dict): Data dictionary."""
+            
+        if data != {}:
+            for key, value in data.items():
+
+                if key == "name":
+                    self.setObjectName(value)
+                    self.ui.frame.setObjectName(value)
+                    self.ui.start.setObjectName(value + "_start")
+                    self.ui.end.setObjectName(value + "_end")
+                    self.ui.name_field.setText(value)
+                    self.ui.name_field.setObjectName(value)
+                    if isinstance(self, RenderLayer):
+                        self.ui.name_field.setObjectName(value + "_layer")
+
+                elif key == "start":
+                    self.ui.start.setText(str(value))
+
+                elif key == "end":
+                    self.ui.end.setText(str(value))
+                
+                elif key == "width":
+                    self.ui.width.setText(str(value))
+
+                elif key == "height":
+                    self.ui.height.setText(str(value))
+
+                elif key == "render_layers" and isinstance(self, Shot):
+                    if len(value) == 1:
+                        self.ui.layers_label.setText(str(len(value)) + " layer")
+                    else:
+                        self.ui.layers_label.setText(str(len(value)) + " layers")
+    
     def toggle_icon(self, button: QToolButton):
         """ Toggles the icon based on the checked state of the button.
             Args:
@@ -205,11 +241,198 @@ class CustomWidgetBase(QWidget):
                 return "default"
 
 
+class DataModel:
+    """ Class handling the data model Shot Manager. """
+
+    def __init__(self, data_file_directory):
+        """ Initializes the DataModel.
+            Args:
+                data_file_directory (str): The path to the data file. """
+
+        self.data_file = data_file_directory
+        self.data = self.load_data()
+
+    def load_data(self):
+        """ Loads the data from the data file.
+            Returns:
+                dict: The loaded data. """
+
+        with open(self.data_file, encoding="UTF-8", mode="r") as data_file:
+            return json.load(data_file)
+
+    def save_data(self):
+        """ Saves the data to the data file. """
+
+        try:
+            with open(self.data_file, encoding="UTF-8", mode="w") as data_file:
+                json.dump(self.data, data_file, indent=4)
+
+        except IOError as e:
+            # Handle the case when there is an error writing to the data file
+            print(f"Error {e}. Cannot write to data file.")
+
+    def shot_dict_exists(self, shot:str):
+        """ Checks if a dictionary entry for the given shot exists.
+            Args:
+                shot (str): name of the shot
+            Returns:
+                bool: True if the dictionary entry exists, False otherwise. """
+
+        if self.data_file and self.data and shot in self.data:
+            return True
+        return False
+
+    def return_shot_dict(self, shot:str):
+        """ Checks if a dictionary entry for the given shot exists and 
+            returns the dictionary entry.
+            Args:
+                shot (str): name of the shot
+            Returns:
+                shot_dict (dict): Shot dictionary."""
+
+        if self.shot_dict_exists(shot):
+            return self.data[shot]
+
+        print("Dictionary is empty.")
+        return {}
+
+    def update_shot_dict(self, shot:str, field_name:str, field_value):
+        """ Updates a specific field value of a shot in the data.
+            Args:
+                shot (str): The name of the shot.
+                field_name (str): The name of the field to update.
+                field_value (str | int | layer): The new value of the field. """
+        self.data = self.load_data()
+
+        shot_dict = self.return_shot_dict(shot)
+
+        if shot_dict:
+            if field_name in ["name", "color"]:
+                shot_dict.update({field_name: field_value})
+                self.save_data()
+
+            elif field_name in ["start", "end", "width", "height"]:
+                shot_dict.update({field_name: int(field_value)})
+                self.save_data()
+
+    def layer_dict_exists(self, shot:str, layer:str):
+        """ Checks if a dictionary entry for the given shot and render
+            layer exists.
+            Args:
+                shot (str): name of the shot
+                layer (str): name of the layer
+            Returns:
+                bool: True if the dictionary entry exists, False otherwise. """
+
+        if self.data_file and self.data and shot in self.data:
+            layers = self.data[shot].get("render_layers")
+            if layers and layer in layers:
+                return True
+        return False
+
+    def return_layer_dict(self, shot:str, layer:str):
+        """ Checks if a dictionary entry for the given shot and render
+            layer exists and returns the dictionary entry.
+            Args:
+                shot (str): name of the shot
+                layer (str): name of the layer
+            Returns:
+                layer_dict (dict): Layer dictionary."""
+
+        if self.layer_dict_exists(shot, layer):
+            return self.data[shot]["layers"][layer]
+
+        print("Layer dictionary is empty.")
+        return {}
+
+    def update_layer_dict(self, shot:str, layer:str, field_name:str, field_value):
+        """ Updates a specific field value of a layer in the data.
+            Args:
+                shot (str): The name of the shot.
+                layer (str): The name of the layer.
+                field_name (str): The name of the field to update.
+                field_value (str | int | layer): The new value of the field. """
+
+        self.data = self.load_data()
+        layer_dict = self.return_layer_dict(shot, layer)
+
+        if layer_dict:
+
+            if field_name == "name":
+                layer_dict.update({field_name: field_value})
+                self.rename_layer(shot, layer, field_value)
+                self.save_data()
+
+            elif field_name in ["start", "end", "width", "height", "renderable", "AOV mode"]:
+                layer_dict.update({field_name: int(field_value)})
+                self.save_data()
+
+            elif field_name == "AOVs":
+                self.update_aovs(layer_dict, field_value)
+                self.save_data()
+
+    def rename_layer(self, shot:str, layer:str, field_value:str):
+        """ Method updates all relevant entries for the layer
+            with a new name.
+            Args:
+                shot (str): Name of the shot.
+                layer (str): Old name of the layer.
+                field_value (str): New name of the layer. """
+
+        # Update the name in the render layers string
+        shot_dict:dict = self.data.get(shot)
+        render_layers:list = shot_dict.get("render_layers", [])
+
+        for i in render_layers:
+            if i == layer:
+                index = render_layers.index(i)
+                render_layers[index] = field_value
+                shot_dict.update({"render_layers": render_layers})
+
+        # Update the name in the layers dictionary
+        layers_dict:dict = shot_dict.get("layers", {})
+        
+        try:
+            # Replace the shot name in JSON
+            layers_dict[field_value] = layers_dict.pop(layer)
+        except KeyError:
+            print("Entry not found.")
+
+        self.save_data()
+
+    def update_aovs(self, layer_dict:dict, field_value:tuple):
+        """ Method checks for current AOVs entry.
+            Args:
+                layer_dict (dict): Dictionary for the layer.
+                field_value (tuple): A tuple of AOV and status (on/off). """
+
+        aov, status = field_value
+
+        # Get a list of tuples for [aov, status]
+        aov_list: list[tuple] = layer_dict.get("AOVs", [])
+
+        # AOVs on, but missing in dictionary - add to dictionary
+        if status and aov not in aov_list:
+            aov_list.append(aov)
+            layer_dict.update({"AOVs": aov_list})
+
+        # AOVs off and value in dictionary - remove from dictionary
+        elif status == 0 and aov in aov_list:
+            aov_list.remove(aov)
+            layer_dict.update({"AOVs": aov_list})
+        # A: AOVs off and missing in dictionary - do nothing
+        # B: AOVs on and added to dictionary - do nothing
+        else:
+            pass
+
+
 class Shot(CustomWidgetBase):
     """ Custom widget representing a shot, subclassed from QWidget for Delegate use. """
     def __init__(self, shot_name, parent=None):
         super().__init__(shot_name, parent)
-
+        
+        self.data_model = DataModel(self.data_file)
+        
         self.shot_name = shot_name
         self.setObjectName(shot_name)
 
@@ -222,22 +445,20 @@ class Shot(CustomWidgetBase):
         """ Connects signals and slots. """
         super().connect_slots()
 
-        self.ui.frame_range_button.clicked.connect(
-            lambda: self.toggle_icon(self.ui.frame_range_button))
-        self.ui.name_field.textEdited.connect(
-            lambda: self.update_field("name", self.ui.name_field.text()))
-        self.ui.start.editingFinished.connect(
-            lambda: self.update_field("start", self.ui.start.text()))
-        self.ui.end.editingFinished.connect(
-            lambda: self.update_field("end", self.ui.end.text()))
-        self.ui.width_input.editingFinished.connect(
-            lambda: self.update_field("width", self.ui.width_input.text()))
-        self.ui.height_input.editingFinished.connect(
-            lambda: self.update_field("height", self.ui.height_input.text()))
-        self.ui.visibility_button.toggled.connect(
-            lambda: self.toggle_style_frame(self.shot_name,
-                                            self.ui.visibility_button,
-                                            self.ui.frame))
+        # Connect QLineEdit fields
+        for name in ["start", "end", "width", "height"]:
+            widget = getattr(self.ui, name)
+            widget.editingFinished.connect(lambda n=name, w=widget: self.update_field(n, w.text()))
+
+        # Connect QToolButtons
+        for btn_name in ["frame_range", "visibility", "render", "aov", "aov_beauty", "aov_utility"]:
+            button = getattr(self.ui, f"{btn_name}_button")
+
+            if btn_name == "visibility":
+                button.toggled.connect(lambda checked, b=button: self.toggle_style_frame(self.shot_name, b, self.ui.frame))
+            button.toggled.connect(lambda checked, b=button: self.toggle_icon(b))
+
+        self.ui.name_field.textEdited.connect(lambda text: self.update_field("name", text))
 
     def update_shot_widgets(self, data):
         """ Sets the values of all fields from the data dictionary. Dictionary cannot be empty.
@@ -252,8 +473,8 @@ class Shot(CustomWidgetBase):
                     self.ui.frame.setObjectName(value)
                     self.ui.start.setObjectName(value + "_start")
                     self.ui.end.setObjectName(value + "_end")
-                    self.ui.width_input.setObjectName(value + "_width")
-                    self.ui.height_input.setObjectName(value + "_height")
+                    self.ui.width.setObjectName(value + "_width")
+                    self.ui.height.setObjectName(value + "_height")
                     self.ui.layers_label.setObjectName(value + "_layers")
                     self.ui.name_field.setText(value)
 
@@ -265,10 +486,10 @@ class Shot(CustomWidgetBase):
                     self.ui.end.setText(str(value))
 
                 elif key == "width":
-                    self.ui.width_input.setText(str(value))
+                    self.ui.width.setText(str(value))
 
                 elif key == "height":
-                    self.ui.height_input.setText(str(value))
+                    self.ui.height.setText(str(value))
 
                 elif key == "render_layers":
                     no_layers = len(value)
@@ -336,148 +557,13 @@ class Shot(CustomWidgetBase):
         b.setToolTip(tooltip)
 
 
-class RenderLayerDataModel:
-    """ Class handling the data model for RenderLayer. """
-
-    def __init__(self, data_file_directory):
-        """ Initializes the RenderLayerDataModel.
-            Args:
-                data_file_directory (str): The path to the data file. """
-
-        self.data_file_directory = data_file_directory
-        self.data = self.load_data()
-
-    def load_data(self):
-        """ Loads the data from the data file.
-            Returns:
-                dict: The loaded data. """
-
-        with open(self.data_file_directory, encoding="UTF-8", mode="r") as data_file:
-            return json.load(data_file)
-
-    def save_data(self):
-        """ Saves the data to the data file. """
-
-        try:
-            with open(self.data_file_directory, encoding="UTF-8", mode="w") as data_file:
-                json.dump(self.data, data_file, indent=4)
-
-        except IOError as e:
-            # Handle the case when there is an error writing to the data file
-            print(f"Error {e}. Cannot write to data file.")
-
-    def layer_dict_exists(self, shot:str, layer:str):
-        """ Checks if a dictionary entry for the given shot and render
-            layer exists.
-            Args:
-                shot (str): name of the shot
-                layer (str): name of the layer
-            Returns:
-                bool: True if the dictionary entry exists, False otherwise. """
-
-        if self.data_file_directory and self.data and shot in self.data:
-            layers = self.data[shot].get("render_layers")
-            if layers and layer in layers:
-                return True
-        return False
-
-    def update_layer(self, shot:str, layer:str, field_name:str, field_value):
-        """ Updates a specific field value of a layer in the data.
-            Args:
-                shot (str): The name of the shot.
-                layer (str): The name of the layer.
-                field_name (str): The name of the field to update.
-                field_value (str | int | layer): The new value of the field. """
-
-        if shot in self.data and "layers" in self.data[shot] and layer in self.data[shot]["layers"]:
-
-            layer_dict = self.data[shot]["layers"][layer]
-            try:  # Changing start or end
-
-                layer_dict.update({field_name: int(field_value)})
-                self.save_data()
-
-            except ValueError:  # Changing the name of the layer
-
-                if field_name == "name":
-
-                    layer_dict.update({field_name: field_value})
-
-                    # Update the name in the render layers string
-                    shot_dict = self.data.get(shot)
-                    render_layers = shot_dict.get("render_layers")
-
-                    for i in render_layers:
-                        if i == layer:
-                            index = render_layers.index(i)
-                            render_layers[index] = field_value
-                            shot_dict["render_layers"] = render_layers
-
-                    # Update the name in the layers dictionary
-                    layers_dict = shot_dict["layers"]
-                    # Replace the shot name in the .json
-                    layers_dict[field_value] = layers_dict.pop(layer)
-
-                elif field_name == "AOV mode":
-
-                    layer_dict.update({field_name: field_value})
-
-            except TypeError:  # For Active AOVs, field_value is a tuple
-
-                value, status = field_value
-
-                aov_list = layer_dict.get(field_name)
-
-                # Any old files will have a wrong value type, so replace them with an empty list
-                if isinstance(aov_list, (str, int)) or aov_list is None:
-                    aov_list = []
-                    layer_dict.update({field_name: aov_list})
-
-                # AOVs on and added to dictionary - do nothing
-                if status and value in aov_list:
-                    pass
-
-                # AOVs on, but missing in dictionary - add to dictionary
-                elif status and value not in aov_list:
-                    aov_list.append(value)
-                    layer_dict.update({field_name: aov_list})
-
-                # AOVs off and missing in dictionary - do nothing
-                elif status == 0 and value not in aov_list:
-                    pass
-
-                # AOVs off and value in dictionary - remove from dictionary
-                elif status == 0 and value in aov_list:
-                    aov_list.remove(value)
-                    layer_dict.update({field_name: aov_list})
-
-            self.save_data()
-
-    def get_layer_info(self, shot, layer):
-        """ Retrieves the information about the specified layer from the data.
-            Args:
-                shot (str): The name of the shot.
-                layer (str): The name of the layer.
-            Returns:
-                dict: The layer information. """
-
-        data = self.load_data()
-
-        if shot in data and "layers" in data[shot] and layer in data[shot]["layers"]:
-
-            return data[shot]["layers"][layer]
-
-        print("Shot or layer not found.")
-        return {}
-
-
 class RenderLayer(CustomWidgetBase):
     """ Represents a render layer widget, subclassed from QWidget for Delegate use. """
     # pylint: disable=unnecessary-lambda
     def __init__(self, layer_name, parent=None):
         super().__init__(layer_name, parent)
 
-        self.data_model = RenderLayerDataModel(self.data_file_directory)
+        self.data_model = DataModel(self.data_file)
 
         self.layer_name = layer_name
         self.shot_name = self.return_shot_name(self)
@@ -493,120 +579,23 @@ class RenderLayer(CustomWidgetBase):
         """ Connects signals and slots. """
         super().connect_slots()
 
-        self.ui.render_button.clicked.connect(lambda: self.ui.render_button.toggle())
-        self.ui.render_button.clicked.connect(
-            lambda: self.toggle_icon(self.ui.render_button))
-        self.ui.visibility_button.clicked.connect(
-            lambda: self.toggle_icon(self.ui.visibility_button))
-        self.ui.visibility_button.toggled.connect(
-            lambda: self.toggle_style_frame(
-                self.shot_name, self.ui.visibility_button, self.ui.frame))
-        self.ui.aov_button.clicked.connect(lambda: self.ui.aov_button.toggle())
-        self.ui.aov_button.toggled.connect(lambda: self.toggle_icon(self.ui.aov_button))
-        self.ui.aov_button.clicked.connect(lambda: self.toggle_button(self.ui.aov_button))
-        self.ui.aov_beauty_button.clicked.connect(lambda: self.ui.aov_beauty_button.toggle())
-        self.ui.aov_beauty_button.toggled.connect(
-            lambda: self.toggle_icon(self.ui.aov_beauty_button))
-        self.ui.aov_utility_button.clicked.connect(lambda: self.ui.aov_utility_button.toggle())
-        self.ui.aov_utility_button.toggled.connect(
-            lambda: self.toggle_icon(self.ui.aov_utility_button))
+        # Connect QLineEdit fields
+        for name in ["start", "end"]:
+            widget = getattr(self.ui, name)
+            widget.editingFinished.connect(lambda n=name, w=widget: self.update_field(n, w.text()))
+
+        # Connect QToolButtons
+        for btn_name in ["render", "visibility", "aov", "aov_beauty", "aov_utility"]:
+            button = getattr(self.ui, f"{btn_name}_button")
+            button.toggled.connect(lambda checked, b=button: self.toggle_icon(b))
+
+            if btn_name == "visibility":
+                button.toggled.connect(lambda checked, b=button: self.toggle_style_frame(self.shot_name, b, self.ui.frame))
 
         self.ui.name_field.editingFinished.connect(
             lambda: self.update_field("name", self.ui.name_field.text()))
         self.ui.name_field.editingFinished.connect(
             lambda: util.rename_layers(self.layer_name, self.ui.name_field.text()))
-        self.ui.start.editingFinished.connect(
-            lambda: self.update_field("start", self.ui.start.text()))
-        self.ui.start.editingFinished.connect(lambda: util.edit_overrides(
-                self.layer_name, "start", int(self.ui.start.text()), "defaultRenderGlobals"))
-        self.ui.end.editingFinished.connect(lambda: self.update_field("end", self.ui.end.text()))
-        self.ui.end.editingFinished.connect(lambda: util.edit_overrides(
-            self.layer_name, "end", int(self.ui.end.text()), "defaultRenderGlobals"))
-
-    def update_layer_widgets(self, shot:str, layer:str):
-        """ Updates the render layer widget with the layer information from JSON file.
-            Args:
-                shot (str): The name of the shot.
-                layer (str): The name of the layer. """
-
-        data = util.shot_data_directory()
-
-        try:
-            layer_dict = data[shot]["layers"][layer]
-
-        except KeyError:
-            layer_dict = data[shot]
-
-        if data and layer_dict:
-
-            renderable = layer_dict.get("renderable")
-            aov_mode = layer_dict.get("AOV mode")
-            aovs = layer_dict.get("AOVs")
-
-            for key, value in layer_dict.items():
-
-                if key == "name":
-                    self.setObjectName(value)
-                    self.ui.frame.setObjectName(value)
-                    self.ui.name_field.setObjectName(value + "_layer")
-                    self.ui.start.setObjectName(value + "_start")
-                    self.ui.end.setObjectName(value + "_end")
-                    self.ui.name_field.setText(value)
-
-                elif key == "start":
-
-                    self.ui.start.setText(str(value))
-                    self.update_field("start", str(value))
-
-                elif key == "end":
-                    self.ui.end.setText(str(value))
-                    self.update_field("end", str(value))
-
-            # Check renderable status and set .isChecked for button and correct icon
-            if renderable is not None and renderable is True:
-                icon, tooltip = util.return_icon_tooltip("render_button", "on")
-                self.ui.render_button.setChecked(True)
-            else:
-                icon, tooltip = util.return_icon_tooltip("render_button", "off")
-                self.ui.render_button.setChecked(False)
-
-            self.ui.render_button.setIcon(icon)
-            self.ui.render_button.setToolTip(tooltip)
-
-            # Check for the AOV mode key and value. Set .isChecked for button and correct icon.
-            if aov_mode is not None and aov_mode == 1:
-                icon, tooltip = util.return_icon_tooltip("aov_button", "on")
-            else:
-                icon, tooltip = util.return_icon_tooltip("aov_button", "off")
-
-            self.ui.aov_button.setToolTip(tooltip)
-            self.ui.aov_button.setIcon(icon)
-
-            # Check for the AOV mode key and value. Set .isChecked for button and correct icon.
-
-            if aovs is not None and isinstance(aovs, int):
-
-                aov_list = ([], 0)
-                RenderLayerDataModel(self.data_file_directory).update_layer(
-                    shot, layer, "AOVs", aov_list)
-
-            else:
-
-                if "beauty" in aovs:
-
-                    icon_beauty, tooltip_beauty = util.return_icon_tooltip(
-                        "aov_beauty_button", "on")
-                    self.ui.aov_beauty_button.setChecked(True)
-                    self.ui.aov_beauty_button.setIcon(icon_beauty)
-                    self.ui.aov_beauty_button.setToolTip(tooltip_beauty)
-
-                elif "utility" in aovs:
-
-                    icon_utility, tooltip_utility = util.return_icon_tooltip(
-                        "aov_utility_button", "on")
-                    self.ui.aov_utility_button.setChecked(True)
-                    self.ui.aov_utility_button.setIcon(icon_utility)
-                    self.ui.aov_utility_button.setToolTip(tooltip_utility)
 
     def return_layer_name_by_widget(self, widget: QWidget):
         """ Returns the name of the layer associated with the widget.
@@ -659,17 +648,44 @@ class RenderLayer(CustomWidgetBase):
         button.setIcon(icon)
         button.setToolTip(tooltip)
 
-    def toggle_button(self, button: QToolButton):
-        """ Toggles .checked state for the button.
-            Args:
-                button (QToolButton): Instance of the button. """
+    def update_aov_buttons(self, shot:str, layer:str):
 
-        if isinstance(button, QToolButton):
-            if button.isChecked():
-                button.setChecked(False)
+        # Retrieve layer values
+        layer_dict = DataModel(self.data_file).return_layer_dict(shot, layer)
+        
+        aovs = layer_dict.get("AOVs", [])
 
-            else:
-                button.setChecked(True)
+        for aov in ["beauty", "utility"]:
+            for aov_tuple in aovs:
+                if aov in aov_tuple:
+                    status = aov_tuple[1]
+                    button_name = f"aov_{aov}_button"
+                    button = self.ui.__getattribute__(button_name)
+                    icon, tooltip = util.return_icon_tooltip(button_name, status)
+                    button.setIcon(icon)
+                    button.setToolTip(tooltip)
+
+    def update_aovmode_button(self, shot:str, layer:str):
+
+        # Retrieve layer values
+        layer_dict = DataModel(self.data_file).return_layer_dict(shot, layer)
+        
+        aovmode = layer_dict.get("AOV mode", 0)
+
+        icon, tooltip = util.return_icon_tooltip("aov_button", aovmode)
+        self.ui.aov_button.setIcon(icon)
+        self.ui.aov_button.setToolTip(tooltip)
+
+    def update_render_button(self, shot:str, layer:str):
+
+        # Retrieve layer values
+        layer_dict = DataModel(self.data_file).return_layer_dict(shot, layer)
+
+        status = layer_dict.get("renderable", 1)
+
+        icon, tooltip = util.return_icon_tooltip("render_button", status)
+        self.ui.render_button.setIcon(icon)
+        self.ui.render_button.setToolTip(tooltip)
 
     def compare_range_values(self):
         """ Checks start and end frame for the layer and compares
