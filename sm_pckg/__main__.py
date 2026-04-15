@@ -1,3 +1,7 @@
+"""
+Application main module.
+"""
+# pylint: disable=import-error,no-name-in-module
 import sys
 from PySide6.QtWidgets import QApplication
 from source.ShotManager import ShotManager
