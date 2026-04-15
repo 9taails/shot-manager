@@ -16,15 +16,12 @@ from PySide6.QtWidgets import (
     QPushButton,
     QSpacerItem,
     QToolButton,
-    QTreeWidget,
-    QTreeWidgetItem,
     QAbstractItemView,
     QMainWindow,
-    QTreeView, 
-    QHeaderView
+    QTreeView
 )
 
-from source.util_paths import Paths
+from source.util_paths import Path as path
 
 
 class ShotManagerWindow(QMainWindow):
@@ -45,7 +42,7 @@ class ShotManagerWindow(QMainWindow):
         shotManager_window.setMaximumSize(QSize(600, 1200))
         shotManager_window.setFont(font)
 
-        style_sheet_file = Paths.resource_file("style_sheet.css")
+        style_sheet_file = path.resource_file("style_sheet.css")
 
         # Load the CSS style sheet
         with open(style_sheet_file, "r") as file:
@@ -91,12 +88,12 @@ class ShotManagerWindow(QMainWindow):
         self.sync_button = QToolButton(self.widget)
         self.sync_button.setObjectName(u"sync_button")
 
-        self.sync_button.setIcon(QIcon(Paths.icon("refresh.png")))
+        self.sync_button.setIcon(QIcon(path.icon("refresh.png")))
         self.sync_button.setIconSize(QSize(24, 24))
 
         self.update_button = QToolButton(self.widget)
         self.update_button.setObjectName(u"update_button")
-        self.update_button.setIcon(QIcon(Paths.icon("refresh.png")))
+        self.update_button.setIcon(QIcon(path.icon("refresh.png")))
         self.update_button.setIconSize(QSize(24, 24))
 
         self.button_layout.addWidget(self.newShot_button, 0, Qt.AlignmentFlag.AlignLeft)
@@ -107,23 +104,23 @@ class ShotManagerWindow(QMainWindow):
 
         self.verticalLayout.addWidget(self.widget, 0, Qt.AlignmentFlag.AlignVCenter)
 
-        self.shotList_treeWidget = QTreeView()
+        self.tree_view = QTreeView()
 
         """ __qtreewidgetitem = QTreeWidgetItem()
         __qtreewidgetitem.setText(0, u"")"""
-        #header = QHeaderView(Qt.Orientation.Horizontal, self.shotList_treeWidget)
+        #header = QHeaderView(Qt.Orientation.Horizontal, self.tree_view)
 
-        #self.shotList_treeWidget.setHeader(header)
-        self.shotList_treeWidget.setObjectName(u"shotList_treeWidget")
-        self.shotList_treeWidget.setFont(font)
-        self.shotList_treeWidget.setSelectionMode(QAbstractItemView.SelectionMode.ContiguousSelection)
-        self.shotList_treeWidget.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectItems)
-        self.shotList_treeWidget.setIconSize(QSize(10, 10))
-        self.shotList_treeWidget.setRootIsDecorated(True)
-        self.shotList_treeWidget.setSortingEnabled(True)
-        self.shotList_treeWidget.header().setVisible(False)
+        #self.tree_view.setHeader(header)
+        self.tree_view.setObjectName(u"tree_view")
+        self.tree_view.setFont(font)
+        self.tree_view.setSelectionMode(QAbstractItemView.SelectionMode.ContiguousSelection)
+        self.tree_view.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectItems)
+        self.tree_view.setIconSize(QSize(10, 10))
+        self.tree_view.setRootIsDecorated(True)
+        self.tree_view.setSortingEnabled(True)
+        self.tree_view.header().setVisible(False)
 
-        self.verticalLayout.addWidget(self.shotList_treeWidget)
+        self.verticalLayout.addWidget(self.tree_view)
 
         shotManager_window.setCentralWidget(self.centralwidget)
 

@@ -1,7 +1,5 @@
-from __future__ import annotations
 import os
 import json
-from random import randrange
 
 from PySide6.QtWidgets import (
     QDialog,
@@ -17,7 +15,8 @@ except ModuleNotFoundError:  # Local testing
     pass
 
 import source.util as util
-from source.util_paths import Paths
+from source.util_paths import Path as path
+from source.model import DataModel
 from ui.ui_creators import LayerCreatorUI, ShotCreatorUI
 
 
@@ -29,8 +28,8 @@ class LayerCreator(QDialog, LayerCreatorUI):
     def __init__(self, parent):
         super(LayerCreator, self).__init__(parent)
 
-        self.data_file = Paths.return_shot_data_full_filepath() # Path to data file
-        self.data_directory = Paths.return_shot_data_directory()  # Path to data folder
+        self.data_model = DataModel(path.return_data_filepath())
+        self.data_directory = path.return_sm_dir()  # Path to data folder
         self.style_sheet = util.load_frame_style()
 
         self.setup_ui(self)
@@ -46,13 +45,6 @@ class LayerCreator(QDialog, LayerCreatorUI):
         else:
             cls.creator_instance.raise_()
             cls.creator_instance.activateWindow()
-
-    def update_data(self, data: dict):
-        """ Writes the data to JSON file."""
-
-        if self.data_file is not None:
-            with open(self.data_file, "w") as data_dump:
-                json.dump(data, data_dump, indent=4)
 
     def toggle_custom_input(self):
 
@@ -148,14 +140,11 @@ class LayerCreator(QDialog, LayerCreatorUI):
             for layer in layers_to_create:
                 layers_in_shot.append(layer)
 
-                # Update view
+                # Update file via DataModel
+                self.data_model.add_layer(shot, layer, shot_data[shot]["start"], shot_data[shot]["end"])
+                # Sync the passed shot_data dict so the UI updates
                 shot_data[shot]["render_layers"] = layers_in_shot
-
-                self.update_data(shot_data)
-
-                layer_info = layer, shot_data[shot]["start"], shot_data[shot]["end"], 1, 1
-
-                self.add_layer_info(shot_data, shot, layer_info)
+                shot_data[shot]["layers"][layer] = self.data_model.return_layer_dict(shot, layer)
 
     def add_layer_info(self, data: dict, shot: str, info: tuple):
         """Updates dictionary entry for shot layers with layer specific information.
@@ -185,7 +174,8 @@ class LayerCreator(QDialog, LayerCreatorUI):
 
         layer_update = LayerCreator(None).layer_dict_exists(data, shot)
         layer_update.update(info_dict)
-        self.update_data(data)
+        self.data_model.save_data()
+
 
     def create_layer_from_template(self, shot_input, suffix):
 
@@ -196,14 +186,14 @@ class LayerCreator(QDialog, LayerCreatorUI):
                 suffix (string): One of the available presets names in the resource folder, ex. fg, bg, master
         """
         #template_dir = util.find_latest("resources/presets/maya/renderLayerPresets", "main")  # Preset directory
-        temp_dir = Paths.temp_dir()  # Temporary directory
+        temp_dir = path.temp_dir()  # Temporary directory
         #preset_path = "".join([template_dir, "/", suffix, ".json"])  # Preset path
         # TODO: hardcoded path
         local_path = "E:/Projects/maya/layer_presets"
         preset_path = "".join([local_path, "/", suffix, ".json"])  # Preset path
         print(preset_path)
 
-        shot_data: dict = util.shot_data_directory()
+        shot_data: dict = util.create_data_file()
 
         if suffix == "custom":
             shot = shot_input[:4]
@@ -462,17 +452,12 @@ class ShotCreator(QDialog, ShotCreatorUI):
     def __init__(self, parent):
         super(ShotCreator, self).__init__(parent)
 
-        self.data_filepath = Paths.return_shot_data_full_filepath()  # Path to data file
-        self.data_file = Paths.return_shot_data_directory()  # Path to data folder
+        self.data_file = path.return_sm_dir()  # Path to data folder
+        self.data_model = DataModel(path.return_data_filepath())
+        self.style_sheet = util.load_frame_style()
 
         self.setup_ui(self)
-        self.add_shots_button.clicked.connect(lambda: self.write_data())
-        try:
-            self.add_shots_button.clicked.connect(lambda: self.add_shot_elements_to_scene())
-        except NameError:
-            print("Maya hasn't been loaded yet.")
-            pass
-        self.add_shots_button.clicked.connect(lambda: self.accept())
+        self.connect_signals()
 
     @classmethod
     def show_shot_builder(cls, parent):
@@ -488,100 +473,77 @@ class ShotCreator(QDialog, ShotCreatorUI):
             cls.builder_instance.raise_()
             cls.builder_instance.activateWindow()
 
-    def update_data(self, data: dict):
-        """ Writes the data to JSON file."""
+    def connect_signals(self):
+        """ Connect signals to relevant functions. """
+        
+        self.add_shots_button.clicked.connect(lambda: self.add_to_dict())
+        
+        if util.maya_is_loaded():
+            self.add_shots_button.clicked.connect(lambda: self.add_shot_elements_to_scene())
 
-        if self.data_filepath is not None:
-            with open(self.data_filepath, "w") as data_dump:
-                json.dump(data, data_dump, indent=4)
+        self.add_shots_button.clicked.connect(lambda: self.accept())
 
     def get_user_input(self):
-        """This function gets user input for:
-        1) The amount of shots to be built.
-        2) The shot number to be built, alternatively the starting shot to be used when building multiple shots
-        3) The length of the shots.
+        """ Retrieve user input for creating new shots.
+            Returns:
+                user_input (list): Shot count, initial shot number and shot length. """
 
-        Returns:
-            number_of_shots (int): An integer.
-            shot_number (int): An integer with a default interval of 10.
-            shot_length (int): An integer specifying shot duration in frames.
-            light_group (bool): False by default, True otherwise.
-        """
+        shot_count: int = self.shot_count.value()
+        start_shot: int = self.start_shot.value()
+        length: int = int(self.shot_length.text())
 
-        number_of_shots = self.shot_count_value.value()
-        shot_number = self.start_shot_value.value()
-        shot_length = int(self.shot_length_value.text())
+        user_input: list = [shot_count, start_shot, length]
 
-        return number_of_shots, shot_number, shot_length
+        return user_input
 
-    def write_data(self):
-        """Checks if there is a file containing shot data or creates it if it doesn't exist. Retrieves user input from
-        the UI and then either updates or writes the model."""
+    def return_new_shots(self):
+        """ Checks if there is a file containing shot data or creates it if 
+            it doesn't exist. Retrieves user input from the UI and checks which 
+            shots already exist in the model. Returns a list of shots to create
+            and the length of the shots. """
 
-        # Check if data directory exists, if not, create it.
+        # Check if JSON file with shot dictionary exists. 
+        # Creates a new file with an empty dictionary otherwise.
+        util.create_data_file()
 
-        data_dict = util.shot_data_directory()
+        # Now load the data
+        data_dict = self.data_model.load_data()
 
         # Get input from user
+        count, start_shot, length = self.get_user_input()
+        end_shot = start_shot + count * 10
 
-        number_of_shots, shot_number, shot_length = self.get_user_input()
-        end_shot = (shot_number + number_of_shots * 10)
-
-        # Set shot color
-        color_list = ("red", "green", "blue", "yellow", "purple", "orange")
+        # Create an empty set for new shots
         new_shots = []
 
         # Add items to the dictionary based on user input
-
-        for num in range(shot_number, end_shot, 10):
+        for num in range(start_shot, end_shot, 10):
             shot_name = "".join(["s", f"{num}".zfill(3)])
             new_shots.append(shot_name)
 
-        if data_dict:
+        # Do not add shots with same names to the dictionary
+        existing_shots = list(data_dict.keys())
+        shots_to_create = [s for s in new_shots if s not in existing_shots]
 
-            shots = list(data_dict.keys())
-            shots_to_create = [sh for sh in new_shots if sh not in shots]
+        return (shots_to_create, length)
 
-        else:
+    def add_to_dict(self):
+        """ Creates a new entry in the dictionary for each new shot. """
 
-            shots_to_create = new_shots
+        shot_list, length = self.return_new_shots()
 
-            # Add new shots to the dictionary
-
-        for shot in shots_to_create:
-
+        # Add new shots to the dictionary
+        for shot in shot_list:
             if shot != "s000":
+                self.data_model.add_shot(shot, length)
 
-                shot_info_dict = dict()
+    def add_layer(self):
+        pass
+        """layer_info = master_layer, 1001, int(end_frame), 1, 0
 
-                if data_dict:
-
-                    data_dict[shot] = shot_info_dict
-
-                else:
-                    data_dict = dict()
-                    data_dict[shot] = shot_info_dict
-
-                random_index = randrange(0, len(color_list))
-                color = color_list[random_index]
-                end_frame = 1001 + shot_length - 1
-                master_layer = shot + "master"
-
-                shot_info_dict["name"] = shot
-                shot_info_dict["color"] = color
-                shot_info_dict["start"] = 1001
-                shot_info_dict["end"] = int(end_frame)
-                shot_info_dict["width"] = 1920
-                shot_info_dict["height"] = 1080
-                shot_info_dict["render_layers"] = [master_layer]
-
-                self.update_data(data_dict)
-
-                layer_info = master_layer, 1001, int(end_frame), 1, 0
-
-                LayerCreator(None).add_layer_info(data_dict, shot, layer_info)
-
-        self.update_data(data_dict)
+        LayerCreator(None).add_layer_info(data_dict, shot, layer_info)
+        
+        self.data_model.save_data()"""
 
     @staticmethod
     def add_shot_elements_to_scene():
@@ -594,7 +556,7 @@ class ShotCreator(QDialog, ShotCreatorUI):
             - master render layer
         """
 
-        shot_data = util.shot_data_directory()
+        shot_data = util.create_data_file()
         
         try:
             layer_list = mc.ls(type="renderSetupLayer")  # type: ignore

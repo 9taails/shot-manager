@@ -6,8 +6,8 @@ except ModuleNotFoundError:
 import tempfile
 
 
-class Paths:
-	"""Class containing reference to resource paths used in Shot Manager."""
+class Path:
+	"""Class containing reference to resource path used in Shot Manager."""
 
 	base = os.path.dirname(__file__)		# Path to this folder
 	sm_folder = os.path.abspath(os.path.join(base, ".."))  	# Path to directory containing .shot_manager
@@ -17,7 +17,7 @@ class Paths:
 	
 
 	@classmethod
-	def return_shot_data_directory(cls):
+	def return_sm_dir(cls):
 		"""Returns the path to .shot_manager folder for the current Maya scene.
 		Example: C:/maya/projects/default/scenes/.shot_manager
 		"""
@@ -27,7 +27,7 @@ class Paths:
 		return data_folder
 
 	@classmethod
-	def return_shot_data_full_filepath(cls):
+	def return_data_filepath(cls):
 		"""Returns the full path to the current scene's shot_data file.
 		Example: C:/maya/projects/default/scenes/.shot_manager/barney_shot_data.json
 		"""
@@ -43,8 +43,8 @@ class Paths:
 
 		data_filepath = os.path.join(cls.base, file_name)
 
-		if cls.return_shot_data_directory():
-			data_filepath = os.path.join(cls.return_shot_data_directory(), file_name)
+		if cls.return_sm_dir():
+			data_filepath = os.path.join(cls.return_sm_dir(), file_name)
 
 		return data_filepath
 

@@ -1,15 +1,15 @@
-from __future__ import annotations
 import sys
 import json
 import json.decoder
 import os
 import re
+from random import randrange
 
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QWidget
 from shiboken6 import wrapInstance
 
-from source.util_paths import Paths
+from source.util_paths import Path as path
 from source.creators import LayerCreator
 
 try:
@@ -49,7 +49,6 @@ def node_exists(keywords, case_sensitive=True):
                     existing_keywords.append(kw)
     return len(existing_keywords) == len(keywords)
 
-
 def camera_exists(shot):
     """Check if a camera exists with the given shot name"""
 
@@ -60,7 +59,6 @@ def camera_exists(shot):
                 if shot in cam:
                     return True
     return False
-
 
 def light_exists(shot):
     """Check if a light exists with the given shot name"""
@@ -103,7 +101,6 @@ def get_maya_window():
 
     return maya_window
 
-
 def renderer_is_redshift():
     """Prints a warning if the current scene renderer is not Redshift"""
 
@@ -114,7 +111,6 @@ def renderer_is_redshift():
 
     else:
         return True
-
 
 def set_redshift_renderer():
     """Loads the Redshift plugin and sets Redshift as the current scene renderer"""
@@ -145,7 +141,6 @@ def set_redshift_renderer():
         mc.setAttr('defaultRenderGlobals.currentRenderer', 'redshift', type='string')
         mc.warning('Renderer set to Redshift')
 
-
 def set_correct_fps():
     """Sets Maya to use 25 FPS in the scene"""
 
@@ -158,7 +153,6 @@ def set_correct_fps():
     else:
 
         mc.currentUnit(time="pal")
-
 
 def find_latest(search_dir, stream):
     """Checks for the latest publish version in the directory and returns a path to that folder
@@ -200,25 +194,24 @@ def find_latest(search_dir, stream):
 
     else:
 
-        path_to_project = Paths.sm_folder
+        path_to_project = path.sm_folder
         return path_to_project
 
+def create_data_file() -> dict:
+    """ Checks if there is a file containing shot data. Creates it if it doesn't exist.
+    Returns a dictionary or None. """
 
-def shot_data_directory() -> dict:
-    """Checks if there is a file containing shot data. Creates it if it doesn't exist.
-    Returns a dictionary or None.
-    """
     # Check if directory exists
     #If no, make dir
     #If yes, check for file
     # Path to .shot_manager folder for the current scene
-    data_folder_dir = Paths.return_shot_data_directory()
-    
+    data_folder_dir = path.return_sm_dir()
+
     # Path to shot_data.json file
-    data_file_dir = Paths.return_shot_data_full_filepath()
-    
+    data_file_dir = path.return_data_filepath()
+
     # Path to destination folder where .shot_manager should be created
-    dest_dir = Paths.sm_folder
+    dest_dir = path.sm_folder
 
     # Check if directory exists
     if not os.path.exists(data_folder_dir):
@@ -234,15 +227,15 @@ def shot_data_directory() -> dict:
 
         # Run again to create the file
         finally:
-            shot_data_directory()
-        
+            create_data_file()
+
     else:
         # Directory exists
         try:
             # Open existing JSON file
             with open(data_file_dir, encoding="UTF-8", mode="r") as data_read:
                 shot_dict = json.load(data_read)
-        
+
         except FileNotFoundError:
             # File doesn't exist, create an empty dictionary
             empty_file = dict()
@@ -250,9 +243,9 @@ def shot_data_directory() -> dict:
             # Create a new file from the empty dictionary
             with open(data_file_dir, encoding="UTF-8", mode="w") as data_write:
                 json.dump(empty_file, data_write, indent=4)
-            
+
             return empty_file
-        
+
         except json.decoder.JSONDecodeError:
             # Run recursive - delete old file and try again
             try:
@@ -267,7 +260,7 @@ def shot_data_directory() -> dict:
                 empty_file = dict()
                 
                 # Base location
-                root_dir = Paths.base
+                root_dir = path.base
                 
                 # Create a new file from the empty dictionary
                 with open(root_dir, encoding="UTF-8", mode="w") as data_write:
@@ -278,7 +271,7 @@ def shot_data_directory() -> dict:
                 return empty_file
                   
             else:
-                shot_data_directory()
+                create_data_file()
         
         else:
            return shot_dict 
@@ -286,22 +279,29 @@ def shot_data_directory() -> dict:
 def load_style_sheet():
     """Loads the file with style sheets for the application."""
 
-    ui_directory = Paths.resource_file("style_sheet.css")
+    ui_directory = path.resource_file("style_sheet.css")
 
     with open(ui_directory, encoding="UTF-8", mode="r") as file:
         styles = file.read()
     return styles
 
-
 def load_frame_style():
     """Loads the file with style sheets for the QFrame."""
 
-    ui_directory = Paths.resource_file("frame_styles.json")
+    ui_directory = path.resource_file("frame_styles.json")
 
     with open(ui_directory, encoding="UTF-8", mode="r") as file:
         styles = json.load(file)
     return styles
 
+def get_random_color():
+    """ Returns a random color from the list. """
+
+    # Set shot color
+    color_list = ("red", "green", "blue", "yellow", "purple", "orange")
+    random_index = randrange(0, len(color_list))
+    color = color_list[random_index]
+    return color
 
 def return_resource_dict(key: str):
     """Returns the correct dictionary for items used throughout the Shot Manager scripts.
@@ -310,13 +310,12 @@ def return_resource_dict(key: str):
             key (str): name of the key for the dictionary
     """
 
-    dict_directory = Paths.resource_file("dictionaries.json")
+    dict_directory = path.resource_file("dictionaries.json")
 
     with open(dict_directory, encoding="UTF-8", mode="r") as file:
         resource_dict = json.load(file)
 
     return resource_dict[key]
-
 
 def get_shots():
     """This function looks for shot sets in the scene.
@@ -335,7 +334,6 @@ def get_shots():
             shots.append(s)
 
     return shots
-
 
 def process_group_structure(structure, parent=None):
     groups = []
@@ -369,7 +367,6 @@ def process_group_structure(structure, parent=None):
         groups.extend(process_group_structure(child, parent=group))
 
     return groups
-
 
 def create_default_groups():
     """Checks the scene for default groups and creates them if they don't exist"""
@@ -407,7 +404,6 @@ def create_default_groups():
 
     return group_nodes
 
-
 def create_global_sets():
     """Checks the scene for global shot sets and creates them if they don't exist"""
 
@@ -435,7 +431,6 @@ def create_global_sets():
     mc.sets(global_fg, fe=global_set, edit=True)
     mc.sets(global_bg, fe=global_set, edit=True)
 
-
 def create_global_rs_sets():
     """Checks the scene for global shot sets and creates them if they don't exist"""
 
@@ -457,7 +452,6 @@ def create_global_rs_sets():
 
         mc.shadingNode("RedshiftVisibility", n="rsVisibility_global_bg", au=True)
 
-
 # ----> MAYA FUNCTIONS <----
 
 # LAYER SWITCH
@@ -472,7 +466,6 @@ def switch_layer(layer):
     set_active_layer(layer)
     set_active_camera()
     set_frame_range()
-
 
 def set_frame_range():
     """ Returns the frame range of the given layer.
@@ -489,7 +482,6 @@ def set_frame_range():
     if not playback:
         mc.currentTime(range_start, edit=True)
 
-
 def set_active_camera():
     """ Sets the active camera to the one assigned to the current render layer."""
 
@@ -501,7 +493,6 @@ def set_active_camera():
 
         if renderable:
             mc.lookThru(cam)
-
 
 def set_active_layer(layer):
     """ Sets the active layer.
@@ -523,14 +514,12 @@ def set_active_layer(layer):
         print(" Maya module isn't loaded.")
         pass
 
-
 def get_render_layer_name(layer):
     """Returns render layer name, rs_layerName."""
 
     name = "rs_" + layer
 
     return name
-
 
 def get_render_setup_layer_name(layer):
     """Returns render setup layer name, layerName."""
@@ -539,7 +528,6 @@ def get_render_setup_layer_name(layer):
         layer = layer[3:]
 
     return layer
-
 
 # SHOT CREATION
 
@@ -570,7 +558,6 @@ def create_sets(shot):
 
             if maya_set is not master_set:
                 mc.sets(maya_set, fe=master_set)
-
 
 def create_camera(shot):
     """Import the latest published camera rig, adds the correct shot name prefix to all the nodes in the camera
@@ -642,7 +629,6 @@ def create_camera(shot):
                 sel = mc.select(i)
                 mc.rename(sel, shot + "_rsBokeh")
 
-
 def create_light_group(shot):
     """ Creates a light group with the shot name prefix under the main lights group.
 
@@ -672,7 +658,6 @@ def create_light_group(shot):
             mc.warning("Scene_lights group is missing in the scene.")
             pass
 
-
 def create_sequence(shot_name):
     """ Creates a new shot in the Camera Sequencer and assigns the correct name, camera and frame range.
 
@@ -687,7 +672,7 @@ def create_sequence(shot_name):
 
     else:
 
-        data = shot_data_directory()
+        data = create_data_file()
 
         start = int(data[shot_name]["start"])
         end = int(data[shot_name]["end"])
@@ -697,7 +682,6 @@ def create_sequence(shot_name):
         mc.playbackOptions(min=start, max=end, ast=start, aet=end)
 
         mc.connectAttr(shot_name + "_seq.startFrame", shot_name + "_seq.sequenceStartFrame", f=True)
-
 
 def delete_shot_elements(shot):
     """ Deletes all sets, sequences and groups connected to the given shot.
@@ -746,7 +730,6 @@ def delete_shot_elements(shot):
         if shot in b:
             mc.delete(b)
 
-
 def get_maya_color(color):
     """This function contains color dictionaries for outliner elements, based on the colors available in render
     setup.
@@ -764,7 +747,6 @@ def get_maya_color(color):
 
     return outliner_color
 
-
 def change_layer_color(layer, color):
     """ Changes the color of the layer in the Render Setup Editor.
 
@@ -780,7 +762,6 @@ def change_layer_color(layer, color):
     else:
         mc.setAttr(layer + ".labelColor", color.capitalize(), type="string")
 
-
 def set_outliner_color(shot, group):
     """Enables outliner color override for the given group and assigns a color from the template.
 
@@ -789,14 +770,13 @@ def set_outliner_color(shot, group):
         group (string): Name of the group, as it is in the outliner.
     """
 
-    data = shot_data_directory()
+    data = create_data_file()
 
     shot_color = data[shot]["color"]
     color = get_maya_color(shot_color)
 
     mc.setAttr(group + ".useOutlinerColor", True)
     mc.setAttr(group + ".outlinerColor", color[0], color[1], color[2])
-
 
 def edit_overrides(layer, attribute, value, plug):
     """Checks the render layer for existing overrides on the given attribute and creates them if they don't exist.
@@ -860,7 +840,6 @@ def edit_overrides(layer, attribute, value, plug):
         ov = r_layer.createAbsoluteOverride(plug, attribute)
         ov.setAttrValue(ov_value)
 
-
 def rename_shot_elements(old_shot, new_shot):
     """ Checks if the elements of the old shot exist in the scene and renames them to a new shot name."""
 
@@ -901,7 +880,6 @@ def rename_shot_elements(old_shot, new_shot):
         except RuntimeError:
             pass
 
-
 def rename_layers(old_name, new_name):
     """ Checks if the elements of the old shot exist in the scene and renames them to a new shot name."""
 
@@ -912,7 +890,6 @@ def rename_layers(old_name, new_name):
                 mc.rename(node, updated_name)
             except RuntimeError:
                 pass
-
 
 # RENDER LAYERS
 
@@ -1019,7 +996,6 @@ def delete_render_layer(layer):
             container.delete(c)
     renderLayer.delete(rl)
 
-
 def get_layer_info_from_scene(layer_name: str):
     """Retrieves start frame, end frame, renderable status and AOV enabled status from the given layer.
 
@@ -1063,7 +1039,6 @@ def get_layer_info_from_scene(layer_name: str):
 
     return layer_info
 
-
 def get_layer_info_from_view(data: dict, shot_name: str, layer_name: str):
     layer_dict = LayerCreator(None).layer_dict_exists(data, shot_name)
     layer_info_dict = layer_dict[layer_name]
@@ -1089,12 +1064,10 @@ def get_layer_info_from_view(data: dict, shot_name: str, layer_name: str):
         elif "end" in name:
             mc.setAttr(name + ".attrValue", end)
 
-
 def set_layer_renderable(layer_name, value):
     setup_layer = get_render_layer_name(layer_name)
 
     mc.setAttr(setup_layer + ".renderable", value)
-
 
 def get_renderable_status_from_scene(layer_name):
     layers = mc.ls(type="renderLayer")
@@ -1107,7 +1080,6 @@ def get_renderable_status_from_scene(layer_name):
             status = mc.getAttr(layer + ".renderable")
 
             return status
-
 
 def create_aov_and_override_enabled(layer: str, aov_group: str, override_value: int):
     """ Creates beauty and utility AOVs in Maya. Creates an AOV collection for the layers and creates overrides
@@ -1198,7 +1170,6 @@ def create_aov_and_override_enabled(layer: str, aov_group: str, override_value: 
                 rename_crypto_nodes()
                 create_crypto_collections(layer, override_value)
 
-
 def aov_collection_exists(layer: str, aov: str):
     """ Returns True if the layer has an AOV collection and overrides for the specific AOV.
 
@@ -1225,7 +1196,6 @@ def aov_collection_exists(layer: str, aov: str):
                 return collection
     return None
 
-
 def aov_override_exists(layer: str, aov: str):
     """ Returns True if the layer has an override for the specific AOV, else False.
 
@@ -1242,7 +1212,6 @@ def aov_override_exists(layer: str, aov: str):
         # Get collection overrides
         overrides = col.getOverrides()
         return overrides if overrides else False
-
 
 def create_aov_collection(layer: str, aov: str, override_value: int):
     """ Create an AOVCollection and AOVChildCollection for the given AOV and override
@@ -1300,7 +1269,6 @@ def create_aov_collection(layer: str, aov: str, override_value: int):
                 for mat_ov in crypto_mat_ovs:
                     mat_ov.setAttrValue(override_value)
 
-
 def create_crypto_collections(layer: str, override_value: int):
     """ After the cryptomatte AOVs have been created, checks for their name and creates a collection with override
         if it doesn't exist.
@@ -1320,7 +1288,6 @@ def create_crypto_collections(layer: str, override_value: int):
     for aov in crypto_list:
         aov_name = aov.split("_")[1]
         create_aov_collection(layer, aov_name, override_value)
-
 
 def rename_crypto_nodes():
     """ Rename Cryptomatte nodes from their default names. Set correct settings for the
@@ -1351,7 +1318,6 @@ def rename_crypto_nodes():
             mc.setAttr(aov_name, "CryptoMat", type="string")
             mc.rename(aov, "rsAov_CryptoMat")
             mc.setAttr("rsAov_CryptoMat.idType", 1)
-
 
 def toggle_aov_enabled_override(layer: str, aov_group: str, override_value: int):
     """ Creates beauty and utility AOVs in Maya. Creates an AOV collection for the layers and creates overrides
@@ -1387,13 +1353,12 @@ def toggle_aov_enabled_override(layer: str, aov_group: str, override_value: int)
         else:
             create_crypto_collections(layer, override_value)
 
-
 def return_icon_tooltip(button_name, status):
 
     icon_dict = return_resource_dict("BUTTON_ICONS")
     tooltip_dict = return_resource_dict("TOOLTIPS")
     icon_path = icon_dict[button_name][status]
     tooltip = tooltip_dict[button_name][status]
-    icon = QIcon(Paths.icon(icon_path))
+    icon = QIcon(path.icon(icon_path))
 
     return icon, tooltip

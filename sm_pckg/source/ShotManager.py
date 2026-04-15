@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import sys
 from functools import partial
 import re
@@ -39,47 +37,47 @@ except ModuleNotFoundError:  # Local testing
     pass
 
 import source.util as util
-from source.util_paths import Paths
+from source.util_paths import Path as path
 from ui.ui_manager import ShotManagerWindow
-from .custom_widgets import Shot, RenderLayer, ShotManagerDelegate
-from .creators import LayerCreator, ShotCreator
+from source.custom_widgets import Shot, RenderLayer, ShotManagerDelegate
+from source.creators import LayerCreator, ShotCreator
+from source.model import DataModel
 
 
 class ShotManager(ShotManagerWindow):   # pylint: disable=too-many-public-methods
     """Class containing the main UI with all functionality for iterating 
     through shot's render layers and syncing widget status with the JSON file.
     """
-    
+
     # Get window's parent
     try:
-        parent = util.get_maya_window()
+        parent = util.get_maya_window()  # type: ignore
     except NameError:
-        parent = None
-            
+        pass
+
     manager_instance = None     # maintain a single instance of the dialog in Production
 
-    def __init__(self, parent=parent):
+    def __init__(self, parent=None):
         super().__init__(parent)
 
-        self.data_file = Paths.return_shot_data_full_filepath()  # Path to data file
-        self.data_directory = Paths.return_shot_data_directory()  # Path to data folder
-        self.data = util.shot_data_directory()      # Returns the dictionary inside JSON
+        self.data_file = path.return_data_filepath()  # Path to data file
+        self.data_directory = path.return_sm_dir()  # Path to data folder
+        self.data = util.create_data_file()      # Returns the dictionary inside JSON
         self.style_sheet = util.load_frame_style()
         self.setup_ui(self)
-        
+
+        # Create the model
         self.model = QStandardItemModel()
         self.root = self.model.invisibleRootItem()
-        
+
         # Apply the Delegate
-        self.delegate = ShotManagerDelegate(self.shotList_treeWidget)
-        self.shotList_treeWidget.setItemDelegate(self.delegate)
+        self.delegate = ShotManagerDelegate(self.tree_view)
+        self.tree_view.setItemDelegate(self.delegate)
 
         self.set_up_model(self.data)
-        #self.tree_object = self.shotList_treeWidget
         self.connect_signals()
 
         # Runs in Maya only
-
         if util.maya_is_loaded():
             util.set_redshift_renderer()
             util.set_correct_fps()
@@ -142,7 +140,7 @@ class ShotManager(ShotManagerWindow):   # pylint: disable=too-many-public-method
 
         # pylint: disable=unnecessary-lambda
         sb_window = ShotCreator(self)
-        sb_window.add_shots_button.clicked.connect(lambda: sb_window.write_data())
+        sb_window.add_shots_button.clicked.connect(lambda: sb_window.add_to_dict())
         sb_window.add_shots_button.clicked.connect(
             lambda: self.set_up_model(ShotManager().data))
         sb_window.add_shots_button.clicked.connect(lambda: self.deleteLater())
@@ -165,10 +163,10 @@ class ShotManager(ShotManagerWindow):   # pylint: disable=too-many-public-method
         lc_window.show()
 
     #############################################
-    # ---------> DATA MANAGEMENT <----------
+    # -----------> DATA MANAGEMENT <----------- #
     #############################################
 
-    def write_data(self, data: dict):
+    def add_to_dict(self, data: dict):
         """ Writes the data to JSON file."""
 
         if self.data_file is not None:
@@ -202,11 +200,11 @@ class ShotManager(ShotManagerWindow):   # pylint: disable=too-many-public-method
         widget_list = self.check_existing_widgets()
         
         # Set the model to the view BEFORE opening editors
-        if self.shotList_treeWidget.model() != self.model:
-            self.shotList_treeWidget.setModel(self.model)
+        if self.tree_view.model() != self.model:
+            self.tree_view.setModel(self.model)
             # Ensure the first column stretches to fill the available width
-            self.shotList_treeWidget.header().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
-            self.shotList_treeWidget.setIndentation(20)
+            self.tree_view.header().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+            self.tree_view.setIndentation(20)
 
         if data:
 
@@ -226,7 +224,7 @@ class ShotManager(ShotManagerWindow):   # pylint: disable=too-many-public-method
                     
                     # Open the persistent editor immediately
                     index = self.model.indexFromItem(shot_item)
-                    self.shotList_treeWidget.openPersistentEditor(index)
+                    self.tree_view.openPersistentEditor(index)
                     
                     layer_list = sorted(data[shot]["render_layers"])
                     for layer in layer_list:
@@ -236,9 +234,9 @@ class ShotManager(ShotManagerWindow):   # pylint: disable=too-many-public-method
                         shot_item.appendRow(layer_item)
                         
                         layer_index = self.model.indexFromItem(layer_item)
-                        self.shotList_treeWidget.openPersistentEditor(layer_index)
+                        self.tree_view.openPersistentEditor(layer_index)
 
-        self.shotList_treeWidget.expandAll()
+        self.tree_view.expandAll()
 
 
     def update_data(self, shot: str, layer: str | None, key: str, value: str | int):
@@ -251,7 +249,7 @@ class ShotManager(ShotManagerWindow):   # pylint: disable=too-many-public-method
                 value - value of the key
         """
 
-        data = util.shot_data_directory()
+        data = util.create_data_file()
 
         if data is not None:
             if not layer:
@@ -266,7 +264,7 @@ class ShotManager(ShotManagerWindow):   # pylint: disable=too-many-public-method
                     key: value
                 })
 
-            self.write_data(data)
+            self.add_to_dict(data)
 
     #############################################
     # ---------> BUTTON FUNCTIONALITY <----------
@@ -491,13 +489,13 @@ class ShotManager(ShotManagerWindow):   # pylint: disable=too-many-public-method
         if status:
 
             button.setChecked(True)
-            button.setIcon(QIcon(Paths.icon("icon_visibility_green.png")))
+            button.setIcon(QIcon(path.icon("icon_visibility_green.png")))
             button.setToolTip("Layer is currently active.")
 
         else:
 
             button.setChecked(False)
-            button.setIcon(QIcon(Paths.icon("icon_visibility_off.png")))
+            button.setIcon(QIcon(path.icon("icon_visibility_off.png")))
             button.setToolTip("Set active layer.")
 
     def hide_other_shots(self, button: QToolButton, button_name="visibility_button"):
@@ -518,7 +516,7 @@ class ShotManager(ShotManagerWindow):   # pylint: disable=too-many-public-method
 
         for buttons in off_list:
             buttons.setChecked(False)
-            buttons.setIcon(QIcon(Paths.icon("icon_visibility_off.png")))
+            buttons.setIcon(QIcon(path.icon("icon_visibility_off.png")))
 
     def hide_other_layers(self, button, button_name="visibility_button"):
         """Checks the status of all child level visibility buttons and toggles 
@@ -560,7 +558,7 @@ class ShotManager(ShotManagerWindow):   # pylint: disable=too-many-public-method
 
             
             # Get shot name
-            shot_name = RenderLayer(layer_name).return_shot_name(b)
+            shot_name = RenderLayer(layer_name).return_parent_shot(b)
             shot_name = CustomWidgetBase.get_widget_name_from_child(b)[:4] # Get layer name, then slice for shot name
 
             # Get Shot
@@ -599,7 +597,7 @@ class ShotManager(ShotManagerWindow):   # pylint: disable=too-many-public-method
         layer_dict = self.data[shot]["layers"][layer]
         layer_dict.update({"renderable": status})
 
-        self.write_data(self.data)
+        self.add_to_dict(self.data)
 
         util.set_layer_renderable(layer, status)
 
@@ -783,7 +781,7 @@ class ShotManager(ShotManagerWindow):   # pylint: disable=too-many-public-method
             e_field.setText(str(end_value))
             util.edit_overrides(layer_name, "end", end_value, "defaultRenderGlobals")
 
-        self.write_data(self.data)
+        self.add_to_dict(self.data)
 
     ####################################
     # ---------> AOV MODE <----------
@@ -803,7 +801,7 @@ class ShotManager(ShotManagerWindow):   # pylint: disable=too-many-public-method
             layer_name = CustomWidgetBase.get_widget_name_from_child(button) # Use static helper method
 
             # Get shot name
-            shot_name = RenderLayer(layer_name).return_shot_name(button)
+            shot_name = RenderLayer(layer_name).return_parent_shot(button)
             shot_name = CustomWidgetBase.get_widget_name_from_child(button)[:4] # Get layer name, then slice for shot name
 
             # Check the status of all shot's layers and toggle the icon for the parent shot
@@ -816,13 +814,13 @@ class ShotManager(ShotManagerWindow):   # pylint: disable=too-many-public-method
         """Sync AOV mode from the JSON file. Options are Enabled, Batch Only, Disabled."""
         # Get AOV buttons for all the layers
         buttons = self.return_shot_children_by_name(button_name, None)
-        data = util.shot_data_directory()
+        data = util.create_data_file()
 
         for button in buttons:
             button: QToolButton
 
             layer_name = RenderLayer.return_layer_name_by_widget(button)
-            shot_name = RenderLayer(layer_name).return_shot_name(button)
+            shot_name = RenderLayer(layer_name).return_parent_shot(button)
             layer_name = CustomWidgetBase.get_widget_name_from_child(button) # Use static helper method
             shot_name = CustomWidgetBase.get_widget_name_from_child(button)[:4] # Get layer name, then slice for shot name
 
@@ -863,7 +861,7 @@ class ShotManager(ShotManagerWindow):   # pylint: disable=too-many-public-method
         layer_dict = self.data[shot]["layers"][layer]
         layer_dict.update({"AOV mode": status})
 
-        self.write_data(self.data)
+        self.add_to_dict(self.data)
 
         self.aov_mode_set_layer_override(status, layer)
 
@@ -914,13 +912,13 @@ class ShotManager(ShotManagerWindow):   # pylint: disable=too-many-public-method
 
         # Get AOV buttons for all the layers
         buttons = self.return_shot_children_by_name(button_name, None)
-        data = util.shot_data_directory()
+        data = util.create_data_file()
 
         for button in buttons:
             button: QToolButton
 
             layer_name = RenderLayer.return_layer_name_by_widget(button)
-            shot_name = RenderLayer(layer_name).return_shot_name(button)
+            shot_name = RenderLayer(layer_name).return_parent_shot(button)
             layer_name = CustomWidgetBase.get_widget_name_from_child(button) # Use static helper method
             shot_name = CustomWidgetBase.get_widget_name_from_child(button)[:4] # Get layer name, then slice for shot name
 
@@ -954,7 +952,7 @@ class ShotManager(ShotManagerWindow):   # pylint: disable=too-many-public-method
             button: QToolButton
 
             layer = RenderLayer.return_layer_name_by_widget(button)
-            shot_name = RenderLayer(layer).return_shot_name(button)
+            shot_name = RenderLayer(layer).return_parent_shot(button)
             shot = self.root.treeWidget().findChild(Shot, shot_name)
             
             layer = CustomWidgetBase.get_widget_name_from_child(button) # Use static helper method
@@ -1056,7 +1054,7 @@ class ShotManager(ShotManagerWindow):   # pylint: disable=too-many-public-method
         """
 
         existing_shots = util.get_shots()
-        data = util.shot_data_directory()  # JSON data file directory
+        data = util.create_data_file()  # JSON data file directory
         layer_list = data[shot]["render_layers"]
         new_name, ok = QInputDialog().getText(self, "Rename shot", "New name (match pattern)", text="s000")
 
@@ -1094,7 +1092,7 @@ class ShotManager(ShotManagerWindow):   # pylint: disable=too-many-public-method
                 new_name (str): name of the new shot
 
         """
-        data = util.shot_data_directory()
+        data = util.create_data_file()
 
         existing_layers = data[old_name]["render_layers"]  # Layers currently in the .json
         renamed_layers = []
@@ -1216,7 +1214,7 @@ class ShotManager(ShotManagerWindow):   # pylint: disable=too-many-public-method
             for index in range(0, child_count):
 
                 layer_widget: QTreeWidgetItem = shot_widget.child(index)
-                layer: RenderLayer = self.shotList_treeWidget.itemWidget(layer_widget, 0)
+                layer: RenderLayer = self.tree_view.itemWidget(layer_widget, 0)
 
                 # Get the name of the shot for each widget
                 shot = self.return_respective_type(shot_widget, self.root, "Shot")
@@ -1266,7 +1264,7 @@ class ShotManager(ShotManagerWindow):   # pylint: disable=too-many-public-method
         shot_widget_list = self.return_child_widgets(self.root, "QTreeWidgetItem")
         button_widgets = []
 
-        tree_object = self.shotList_treeWidget
+        tree_object = self.tree_view
 
         for shot_widget in shot_widget_list:
 
@@ -1403,7 +1401,7 @@ class ShotManager(ShotManagerWindow):   # pylint: disable=too-many-public-method
 
         self.data.pop(widget_name)
 
-        self.write_data(self.data)
+        self.add_to_dict(self.data)
 
         # Remove items from View
 
@@ -1420,7 +1418,7 @@ class ShotManager(ShotManagerWindow):   # pylint: disable=too-many-public-method
 
         self.set_up_model(self.data)
 
-        self.shotList_treeWidget.update()
+        self.tree_view.update()
 
     def remove_layer_widget(self, button: QToolButton):
         """ Removes the widget from the tree.
@@ -1447,14 +1445,14 @@ class ShotManager(ShotManagerWindow):   # pylint: disable=too-many-public-method
                 # Remove items from Model
 
                 layer_name = RenderLayer.return_layer_name_by_widget(delete_button)
-                shot_name = RenderLayer(layer_name).return_shot_name(button)
+                shot_name = RenderLayer(layer_name).return_parent_shot(button)
                 shot_name = CustomWidgetBase.get_widget_name_from_child(button)[:4] # Get layer name, then slice for shot name
                 layers = self.data[shot_name]["render_layers"]
                 new_layer_list = [layer for layer in layers if layer != layer_name]
                 new_data[shot_name]["render_layers"] = new_layer_list
                 new_data[shot_name]["layers"].pop(layer_name)
 
-                self.write_data(new_data)
+                self.add_to_dict(new_data)
 
     ###############################
     # ---------> UTILITY <---------
@@ -1494,7 +1492,7 @@ class ShotManager(ShotManagerWindow):   # pylint: disable=too-many-public-method
                 new_layer_instance.setObjectName(layer)
                 new_layer_instance.render_button.setChecked(True)
 
-                self.shotList_treeWidget.setItemWidget(child_item, 0, new_layer_instance)
+                self.tree_view.setItemWidget(child_item, 0, new_layer_instance)
                 CustomQTreeWidgetItem.apply_frame_style(new_layer_instance, layer_color)
                 child_item.setSizeHint(0, QSize(440, 60))
 
@@ -1506,11 +1504,11 @@ class ShotManager(ShotManagerWindow):   # pylint: disable=too-many-public-method
         """Returns currently selected shot widgets."""
 
         active_selection = []
-        selection = self.shotList_treeWidget.selectedItems()
+        selection = self.tree_view.selectedItems()
 
         for tree_widget in selection:
-            index = self.shotList_treeWidget.indexFromItem(tree_widget, 0)
-            item = self.shotList_treeWidget.indexWidget(index)
+            index = self.tree_view.indexFromItem(tree_widget, 0)
+            item = self.tree_view.indexWidget(index)
             shot_name = item.objectName()
             active_selection.append([shot_name, index, tree_widget])
 

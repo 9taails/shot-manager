@@ -29,7 +29,7 @@ from PySide6.QtWidgets import (
 )
 
 from source import util
-from source.util_paths import Paths
+from source.util_paths import Path as path
 
 class UI():
     """ Base class for shared Shot and RenderLayer UI. """
@@ -107,7 +107,7 @@ class UI():
         self.frame_range_button = QToolButton()
         self.frame_range_button.setChecked(False)
         self.frame_range_button.setObjectName("frame_range_button")
-        self.frame_range_button.setIcon(QIcon(Paths.icon("icon_frame_range.png")))
+        self.frame_range_button.setIcon(QIcon(path.icon("icon_frame_range.png")))
         self.frame_range_button.setIconSize(self.icon_size)
 
         self.number_validator = QIntValidator(0, 20000)
@@ -139,7 +139,7 @@ class UI():
 
         self.resolution_button = QToolButton()
         self.resolution_button.setObjectName("resolution_button")
-        self.resolution_button.setIcon(QIcon(Paths.icon("icon_resolution.png")))
+        self.resolution_button.setIcon(QIcon(path.icon("icon_resolution.png")))
         self.resolution_button.setIconSize(self.icon_size)
 
         self.width = QLineEdit("width_input")
@@ -168,19 +168,19 @@ class UI():
         self.aov_button = QToolButton()
         self.aov_button.setObjectName("aov_button")
         self.aov_button.setCheckable(True)
-        self.aov_button.setIcon(QIcon(Paths.icon("icon_aov_off.png")))
+        self.aov_button.setIcon(QIcon(path.icon("icon_aov_off.png")))
 
         self.aov_beauty_button = QToolButton()
         self.aov_beauty_button.setObjectName("aov_beauty_button")
         self.aov_beauty_button.setCheckable(True)
-        self.aov_beauty_button.setIcon(QIcon(Paths.icon("icon_aov_beauty_off.png")))
+        self.aov_beauty_button.setIcon(QIcon(path.icon("icon_aov_beauty_off.png")))
         self.aov_beauty_button.setIconSize(self.aov_icon_size)
         self.aov_beauty_button.setToolTip("Beauty AOVs")
 
         self.aov_utility_button = QToolButton()
         self.aov_utility_button.setObjectName("aov_utility_button")
         self.aov_utility_button.setCheckable(True)
-        self.aov_utility_button.setIcon(QIcon(Paths.icon("icon_aov_utility_off.png")))
+        self.aov_utility_button.setIcon(QIcon(path.icon("icon_aov_utility_off.png")))
         self.aov_utility_button.setIconSize(self.aov_icon_size)
         self.aov_utility_button.setToolTip("Utility AOVs")
 
@@ -188,7 +188,7 @@ class UI():
 
         self.layers_icon = QToolButton()
         self.layers_icon.setObjectName("layers_icon")
-        self.layers_icon.setIcon(QIcon(Paths.icon("icon_layers.png")))
+        self.layers_icon.setIcon(QIcon(path.icon("icon_layers.png")))
         self.layers_icon.setIconSize(self.icon_size)
 
         self.layers_label = QLabel()
@@ -204,7 +204,7 @@ class UI():
 
         self.edit_button = QToolButton()
         self.edit_button.setObjectName("edit_button")
-        self.edit_button.setIcon(QIcon(Paths.icon("icon_edit.png")))
+        self.edit_button.setIcon(QIcon(path.icon("icon_edit.png")))
         self.edit_button.setIconSize(self.button_size)
         self.edit_button.setToolTip("Edit shot.")
         self.edit_button.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
@@ -213,7 +213,7 @@ class UI():
         self.visibility_button.setObjectName("visibility_button")
         self.visibility_button.setParent(self.frame)
         self.visibility_button.setCheckable(True)
-        self.visibility_button.setIcon(QIcon(Paths.icon("icon_visibility_off.png")))
+        self.visibility_button.setIcon(QIcon(path.icon("icon_visibility_off.png")))
         self.visibility_button.setIconSize(self.button_size)
         self.visibility_button.setToolTip("No active layers in this shot.")
 
@@ -221,13 +221,13 @@ class UI():
         self.render_button.setObjectName("render_button")
         self.render_button.setCheckable(True)
         self.render_button.setChecked(True)
-        self.render_button.setIcon(QIcon(Paths.icon("icon_renderable_green.png")))
+        self.render_button.setIcon(QIcon(path.icon("icon_renderable_green.png")))
         self.render_button.setIconSize(self.button_size)
         self.render_button.setToolTip("Renderable status.")
 
         self.delete_button = QToolButton()
         self.delete_button.setObjectName("delete_button")
-        self.delete_button.setIcon(QIcon(Paths.icon("icon_delete.png")))
+        self.delete_button.setIcon(QIcon(path.icon("icon_delete.png")))
         self.delete_button.setIconSize(self.button_size)
         self.delete_button.setToolTip("Delete shot.")
 
