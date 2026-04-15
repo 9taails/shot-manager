@@ -8,7 +8,8 @@ Shot and RenderLayer widgets.
 from PySide6.QtCore import (
     QSize,
     Qt,
-    QRegularExpression
+    QRegularExpression, 
+    QEvent
 )
 from PySide6.QtGui import (
     QIcon,
@@ -90,8 +91,6 @@ class UI():
         self.main_layout.addWidget(self.frame)
 
         self.name_field = QLineEdit("name")
-        self.name_field.setFixedSize(self.edit_size_str)
-        self.name_field.setEnabled(False)
         self.name_field.setToolTip("Name field.")
         self.name_field.setAlignment(self.align_center)
         self.name_field.setFont(QFont("Open Sans ExtraBold", 10, 100))
@@ -221,6 +220,8 @@ class UI():
         self.render_button = QToolButton()
         self.render_button.setObjectName("render_button")
         self.render_button.setCheckable(True)
+        self.render_button.setChecked(True)
+        self.render_button.setIcon(QIcon(Paths.icon("icon_renderable_green.png")))
         self.render_button.setIconSize(self.button_size)
         self.render_button.setToolTip("Renderable status.")
 
@@ -284,12 +285,12 @@ class UI():
 
         self.frame.setMinimumHeight(55) # Set minimum height for layer frame
         self.name_field.setToolTip("Layer name.")
-        self.name_field.setReadOnly(True)
+        self.name_field.setReadOnly(True) # Set to read-only by default
         self.name_field.setMouseTracking(True)
 
         # Validator for RenderLayer name
-        layer_pattern = self.name + "\\w"
-        layer_regex = QRegularExpression(layer_pattern)
+        shot_prefix = self.name[:4]
+        layer_regex = QRegularExpression(f"^{shot_prefix}\\w*$")
         self.name_field.setValidator(QRegularExpressionValidator(layer_regex))
 
         # This line_04 is specific to RenderLayer's button layout
@@ -297,3 +298,4 @@ class UI():
         self.button_layout.addWidget(self.visibility_button)
         self.button_layout.addWidget(self.render_button)
         self.master_layout.addLayout(self.button_layout)
+        

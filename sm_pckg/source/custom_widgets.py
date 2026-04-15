@@ -5,10 +5,6 @@ used as part of model-view architecture inside the Shot Manager.
 widgets (subclassed from the custom base) and the StyledItemDelegate.
 The module also holds the model logic class for the RenderLayer.
 """
-from PySide6.QtWidgets import (
-    QToolButton
-)
-
 import json
 
 # pylint: disable=no-name-in-module,import-error
@@ -125,16 +121,25 @@ class CustomWidgetBase(QWidget):
     def connect_slots(self):
         """ Connects signals and slots. """
 
-        self.ui.render_button.clicked.connect(lambda: self.toggle_icon(self.ui.render_button))
-        self.ui.visibility_button.clicked.connect(
-            lambda: self.toggle_icon(self.ui.visibility_button))
+        # Connect QLineEdit fields
+        for name in ["start", "end", "width", "height"]:
+            widget = getattr(self.ui, name)
+            widget.editingFinished.connect(lambda n=name, w=widget: self.update_field(n, w.text()))
+
+        # Connect QToolButtons
+        for btn_name in ["frame_range", "visibility", "render", "aov", "aov_beauty", "aov_utility"]:
+            button = getattr(self.ui, f"{btn_name}_button")
+
+            if btn_name == "visibility":
+                button.toggled.connect(lambda checked, b=button: self.toggle_style_frame(self.name, b, self.ui.frame))
+            button.toggled.connect(lambda checked, b=button: self.toggle_icon(b))
 
     def update_field(self, field_name, field_value):
         """ Updates the field value in the data dictionary and saves it to the data file.
             Args:
                 field_name (str): The name of the field to update.
                 field_value (str): The value of the field to update. """
-
+        print("update field")
         if isinstance(self, Shot):
             print(field_name, field_value)
             try:
@@ -144,7 +149,9 @@ class CustomWidgetBase(QWidget):
                 # Handle the specific exception(s) that may occur during the update
                 print(f"Error updating field: {e}")
         elif isinstance(self, RenderLayer):
+            print("is render layer")
             try:
+                print("try")
                 self.data_model.update_layer_dict(
                     self.shot_name, self.layer_name, field_name, field_value)
             except Exception as e:
@@ -353,14 +360,13 @@ class DataModel:
                 field_name (str): The name of the field to update.
                 field_value (str | int | layer): The new value of the field. """
 
-        self.data = self.load_data()
         layer_dict = self.return_layer_dict(shot, layer)
 
         if layer_dict:
 
             if field_name == "name":
+                print("Im name field name")
                 layer_dict.update({field_name: field_value})
-                self.rename_layer(shot, layer, field_value)
                 self.save_data()
 
             elif field_name in ["start", "end", "width", "height", "renderable", "AOV mode"]:
@@ -371,7 +377,7 @@ class DataModel:
                 self.update_aovs(layer_dict, field_value)
                 self.save_data()
 
-    def rename_layer(self, shot:str, layer:str, field_value:str):
+    def rename_layer(self, shot:str, old_name:str, new_name:str):
         """ Method updates all relevant entries for the layer
             with a new name.
             Args:
@@ -379,22 +385,22 @@ class DataModel:
                 layer (str): Old name of the layer.
                 field_value (str): New name of the layer. """
 
-        # Update the name in the render layers string
-        shot_dict:dict = self.data.get(shot)
+        # Update shot and replace layer name for "render_layers" key
+        shot_dict:dict = self.return_shot_dict(shot)
         render_layers:list = shot_dict.get("render_layers", [])
 
         for i in render_layers:
-            if i == layer:
+            if i == old_name:
                 index = render_layers.index(i)
-                render_layers[index] = field_value
+                render_layers[index] = f"{new_name}"
                 shot_dict.update({"render_layers": render_layers})
 
-        # Update the name in the layers dictionary
+        # Update the name in the "layers" dictionary
         layers_dict:dict = shot_dict.get("layers", {})
         
         try:
             # Replace the shot name in JSON
-            layers_dict[field_value] = layers_dict.pop(layer)
+            layers_dict[new_name] = layers_dict.pop(old_name)
         except KeyError:
             print("Entry not found.")
 
@@ -440,25 +446,6 @@ class Shot(CustomWidgetBase):
         self.apply_frame_style(self.color, self.ui.frame)
 
         self.connect_slots()
-
-    def connect_slots(self):
-        """ Connects signals and slots. """
-        super().connect_slots()
-
-        # Connect QLineEdit fields
-        for name in ["start", "end", "width", "height"]:
-            widget = getattr(self.ui, name)
-            widget.editingFinished.connect(lambda n=name, w=widget: self.update_field(n, w.text()))
-
-        # Connect QToolButtons
-        for btn_name in ["frame_range", "visibility", "render", "aov", "aov_beauty", "aov_utility"]:
-            button = getattr(self.ui, f"{btn_name}_button")
-
-            if btn_name == "visibility":
-                button.toggled.connect(lambda checked, b=button: self.toggle_style_frame(self.shot_name, b, self.ui.frame))
-            button.toggled.connect(lambda checked, b=button: self.toggle_icon(b))
-
-        self.ui.name_field.textEdited.connect(lambda text: self.update_field("name", text))
 
     def update_shot_widgets(self, data):
         """ Sets the values of all fields from the data dictionary. Dictionary cannot be empty.
@@ -568,7 +555,7 @@ class RenderLayer(CustomWidgetBase):
         self.layer_name = layer_name
         self.shot_name = self.return_shot_name(self)
         self.setObjectName(layer_name)
-
+        
         self.ui.setup_layer_ui()
         self.apply_frame_style(self.color, self.ui.frame)
         self.set_line_color()
@@ -579,23 +566,15 @@ class RenderLayer(CustomWidgetBase):
         """ Connects signals and slots. """
         super().connect_slots()
 
-        # Connect QLineEdit fields
-        for name in ["start", "end"]:
-            widget = getattr(self.ui, name)
-            widget.editingFinished.connect(lambda n=name, w=widget: self.update_field(n, w.text()))
-
-        # Connect QToolButtons
-        for btn_name in ["render", "visibility", "aov", "aov_beauty", "aov_utility"]:
-            button = getattr(self.ui, f"{btn_name}_button")
-            button.toggled.connect(lambda checked, b=button: self.toggle_icon(b))
-
-            if btn_name == "visibility":
-                button.toggled.connect(lambda checked, b=button: self.toggle_style_frame(self.shot_name, b, self.ui.frame))
-
+        #self.ui.name_field.editingFinished.connect(
+            #lambda: util.rename_layers(self.layer_name, self.ui.name_field.text()))
+        self.ui.name_field.installEventFilter(self)
         self.ui.name_field.editingFinished.connect(
             lambda: self.update_field("name", self.ui.name_field.text()))
         self.ui.name_field.editingFinished.connect(
-            lambda: util.rename_layers(self.layer_name, self.ui.name_field.text()))
+            lambda: self.data_model.rename_layer(self.shot_name, self.layer_name, self.ui.name_field.text()))
+        self.ui.name_field.editingFinished.connect(
+            lambda: print(self.ui.name_field.text()))
 
     def return_layer_name_by_widget(self, widget: QWidget):
         """ Returns the name of the layer associated with the widget.
