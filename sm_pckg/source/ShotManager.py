@@ -168,7 +168,7 @@ class ShotManager(ShotManagerWindow):   # pylint: disable=too-many-public-method
         layer_creator = LayerCreator(self)
         
         layer_creator.createLayers_button.clicked.connect(
-            lambda: layer_creator.create_layers(self.get_selection()))
+            lambda: layer_creator.add_layers_to_data(self.get_selection()))
         
         layer_creator.createLayers_button.clicked.connect(lambda: self.populate_model(self.data))
         #layer_creator.createLayers_button.clicked.connect(lambda: self.add_render_layer_widget())
