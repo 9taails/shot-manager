@@ -1,5 +1,11 @@
-import os
-import json
+"""
+Module containing the building and functions for the
+additional dialogs inside the Shot Manager.
+"""
+# pylint: disable=no-name-in-module,unnecessary-lambda
+# type: ignore[reportPossiblyUnboundVariable]
+
+import os, json, re
 
 from PySide6.QtWidgets import (
     QDialog,
@@ -9,143 +15,131 @@ from PySide6.QtWidgets import (
 try:
     import maya.cmds as mc  # type: ignore
     import maya.app.renderSetup.model.renderSetup as render  # type: ignore
-    import pymel.core as pm  # type: ignore
-
 except ModuleNotFoundError:  # Local testing
     pass
 
+from ui.ui_creators import LayerCreatorUI, ShotCreatorUI
 import source.util as util
 from source.util_paths import Path as path
-from source.model import DataModel
-from ui.ui_creators import LayerCreatorUI, ShotCreatorUI
+from source.model import data_model
 
 
 class LayerCreator(QDialog, LayerCreatorUI):
-    """A dialog providing interface for building render layers based on templates."""
+    """ Class providing interface for building render layers based on templates."""
 
     creator_instance = None  # maintain a single instance of the dialog in Production
 
     def __init__(self, parent):
         super(LayerCreator, self).__init__(parent)
 
-        self.data_model = DataModel(path.return_data_filepath())
-        self.data_directory = path.return_sm_dir()  # Path to data folder
+        self.data = data_model.data
         self.style_sheet = util.load_frame_style()
-
         self.setup_ui(self)
-        self.custom_layer_checkbox.clicked.connect(lambda: self.toggle_custom_input())
+        self.connect_signals()
 
     @classmethod
     def show_creator_ui(cls, parent):
+        """ Displays the UI for Layer Creator. Maintains a single
+            instance of the Class.
+            Args:
+                parent (ShotManager): Instance of the main window. """
+        
         if not cls.creator_instance:
             cls.creator_instance = LayerCreator(parent)
-
+            
         if cls.creator_instance.isHidden():
             cls.creator_instance.show()
+            
         else:
             cls.creator_instance.raise_()
             cls.creator_instance.activateWindow()
 
+    def connect_signals(self):
+        """ Connect signals to relevant functions. """
+        
+        self.custom_layer_checkbox.clicked.connect(lambda: self.toggle_custom_input())
+
     def toggle_custom_input(self):
-
+        """ Enables the QLineEdit widget for inputting user's own render layer name/s.
+            Input accepts both a single name or a comma-separated list of names. """
+        
         if self.custom_layer_checkbox.isChecked():
-
             self.custom_beauty_input.setEnabled(True)
 
         else:
-
             self.custom_beauty_input.setEnabled(False)
 
-    def add_new_layers(self, shot_data, selection):
-        # Get the current shot info dictionary and create render layers based on the shot data.
+    def create_layers(self, selection):
+        
+        for shot in selection:
+            
+            new_layers, templates = self.get_user_input(shot)
+            current_layers = list(self.data[shot]["render_layers"])
+            print("Layer Creator create layers ", id(self.data))
+            to_discard : list= [l for l in new_layers if l in current_layers]
+            to_create : list = [l for l in new_layers if l not in current_layers]
 
-        for i in selection:
+            if len(to_discard) > 0:
+                print(f"Layer(s) {to_discard} already exist(s). Skipping...")
+                continue
 
-            shot = i[0]
-            layers_in_shot = list(shot_data[shot]["render_layers"])
-            new_layers = []
-
-            # MASTER RENDER LAYER
-            if self.master_layer_checkbox.isChecked():
-                suffix = "master"
-                self.create_layer_from_template(shot, suffix)
-                layer_name = "".join([shot, suffix])
-                new_layers.append(layer_name)
-
-            # FOREGROUND RENDER LAYER
-            if self.global_foreground_checkbox.isChecked():
-                suffix = "fg"
-                self.create_layer_from_template(shot, suffix)
-                layer_name = "".join([shot, suffix])
-                new_layers.append(layer_name)
-
-            # SHOT-SPECIFIC FOREGROUND RENDER LAYER
-            if self.shot_foreground_checkbox.isChecked():
-                suffix = "shot_fg"
-                self.create_layer_from_template(shot, suffix)
-                new_suffix = suffix[5:]
-                layer_name = "".join([shot, new_suffix])
-                new_layers.append(layer_name)
-
-            # BACKGROUND RENDER LAYER
-            if self.global_background_checkbox.isChecked():
-                suffix = "bg"
-                self.create_layer_from_template(shot, suffix)
-                layer_name = "".join([shot, suffix])
-                new_layers.append(layer_name)
-
-            # SHOT-SPECIFIC BACKGROUND RENDER LAYER
-            if self.shot_background_checkbox.isChecked():
-                suffix = "shot_bg"
-                self.create_layer_from_template(shot, suffix)
-                new_suffix = suffix[5:]
-                layer_name = "".join([shot, new_suffix])
-                new_layers.append(layer_name)
-
-            # CUSTOM RENDER LAYER
-            if self.custom_layer_checkbox.isChecked():
-                suffix = "custom"
-                custom_input = self.custom_beauty_input.text()  # Get user input
-
-                if ", " in custom_input:
-
-                    custom_output = custom_input.split(", ")
-
-                else:
-
-                    custom_output = [custom_input]
-
-                for co in custom_output:
-                    shot_name = shot + co
-
-                    self.create_layer_from_template(shot_name, suffix)
-                    layer_name = "".join([shot, co])
-                    new_layers.append(layer_name)
-
-            existing_layers = [layer for layer in new_layers if layer in layers_in_shot]
-            layers_to_create = [layer for layer in new_layers if layer not in existing_layers]
-            length = len(existing_layers)
-            warning_shots = ", ".join(existing_layers)
-
-            if length > 0:
-
-                if length == 1:
-
-                    QMessageBox.warning(self, "Warning", "Layer " + warning_shots + " already exists.")
-
-                else:
-
-                    QMessageBox.warning(self, "Warning", "Layers " + warning_shots + " already exist.")
-
-            for layer in layers_to_create:
-                layers_in_shot.append(layer)
-
+            for layer in to_create:
+                suffix = templates[to_create.index(layer)]
+                if util.maya_is_loaded():
+                    self.create_layer_from_template(shot, suffix)
+                print("Layer Creator create layers ", id(self.data))
                 # Update file via DataModel
-                self.data_model.add_layer(shot, layer, shot_data[shot]["start"], shot_data[shot]["end"])
-                # Sync the passed shot_data dict so the UI updates
-                shot_data[shot]["render_layers"] = layers_in_shot
-                shot_data[shot]["layers"][layer] = self.data_model.return_layer_dict(shot, layer)
+                data_model.add_layer(shot, layer, self.data[shot]["start"], self.data[shot]["end"])
+            print("Layer Creator create layers ", id(self.data))
+            data_model.update_shot_dict(shot, "render_layers", to_create)
+            print(to_create)
 
+    def get_user_input(self, shot:str):
+        """ Retrieves the list of selected Shots (QStyledItemDelegate) and builds render layers
+            for each of those shots, based on user choices.
+            Args:
+                selection (list): A list of currently selected QModelIndex objects. """
+
+        new_layers = []
+        templates = []
+        print(shot)
+        # MASTER RENDER LAYER
+        if self.master_layer_checkbox.isChecked():
+            suffix = "master"
+            layer_name = "".join([shot, suffix])
+            new_layers.append(layer_name)
+            templates.append(suffix)
+
+        # FOREGROUND RENDER LAYER
+        if self.global_foreground_checkbox.isChecked() or self.shot_foreground_checkbox.isChecked():
+            suffix = "fg"
+            layer_name = "".join([shot, suffix])
+            new_layers.append(layer_name)
+            templates.append(suffix)
+
+        # BACKGROUND RENDER LAYER
+        if self.global_background_checkbox.isChecked() or self.shot_background_checkbox.isChecked():
+            suffix = "bg"
+            layer_name = "".join([shot, suffix])
+            new_layers.append(layer_name)
+            templates.append(suffix)
+
+        # CUSTOM RENDER LAYER/s
+        if self.custom_layer_checkbox.isChecked():
+            suffix = "custom"
+            raw_input = self.custom_beauty_input.text()  # Get user input
+
+            # This finds all alphanumeric sequences (plus underscores) 
+            # and ignores everything else (commas, spaces, etc.)
+            custom_names = re.findall(r'[\w]+', raw_input)
+            
+            for name in custom_names:
+                layer_name = "".join([shot, name])
+                new_layers.append(layer_name)
+                templates.append(suffix)
+                
+        return new_layers, templates
+            
     def add_layer_info(self, data: dict, shot: str, info: tuple):
         """Updates dictionary entry for shot layers with layer specific information.
 
@@ -174,7 +168,7 @@ class LayerCreator(QDialog, LayerCreatorUI):
 
         layer_update = LayerCreator(None).layer_dict_exists(data, shot)
         layer_update.update(info_dict)
-        self.data_model.save_data()
+        self.data.save_data()
 
 
     def create_layer_from_template(self, shot_input, suffix):
@@ -193,13 +187,11 @@ class LayerCreator(QDialog, LayerCreatorUI):
         preset_path = "".join([local_path, "/", suffix, ".json"])  # Preset path
         print(preset_path)
 
-        shot_data: dict = util.create_data_file()
-
         if suffix == "custom":
             shot = shot_input[:4]
         else:
             shot = shot_input
-        
+        shot_data = self.data[shot]
         if shot_data:
             start = shot_data[shot]["start"]
             end = shot_data[shot]["end"]
@@ -439,28 +431,21 @@ class LayerCreator(QDialog, LayerCreatorUI):
 
 
 class ShotCreator(QDialog, ShotCreatorUI):
-    """A class for the shot building UI dialog.
-
-    This dialog is used to create single or multiple shots in the scene and all the scene elements associated with a
-    shot i.e. set, sequence and master render layer. A corresponding camera and light group is created for each shot
-    and a color is assigned	to all eligible elements, ie outliner names or render layers, in order to easily
-    identify each shot. The class contains all the functions related to creating these elements.
-    """
+    """ Class handling the creation of new shots. It's responsible for getting the user input
+        and calling the Data Model to update the dictionary. It also creates the Maya scene
+        structure for each shot. Shot widget creation is handled by the Shot Manager. """
 
     builder_instance = None  # maintain a single instance of the dialog in Production
 
     def __init__(self, parent):
         super(ShotCreator, self).__init__(parent)
 
-        self.data_file = path.return_sm_dir()  # Path to data folder
-        self.data_model = DataModel(path.return_data_filepath())
-        self.style_sheet = util.load_frame_style()
-
+        self.data = data_model.data
         self.setup_ui(self)
         self.connect_signals()
 
     @classmethod
-    def show_shot_builder(cls, parent):
+    def show_shot_creator(cls, parent):
         """Show and maintain one instance of the Shot Builder UI."""
 
         if not cls.builder_instance:
@@ -475,12 +460,10 @@ class ShotCreator(QDialog, ShotCreatorUI):
 
     def connect_signals(self):
         """ Connect signals to relevant functions. """
-        
-        self.add_shots_button.clicked.connect(lambda: self.add_to_dict())
-        
+        self.add_shots_button.clicked.connect(lambda: self.add_new_shots())
+        self.add_shots_button.clicked.connect(lambda: print("ShotCreator.buttonClick ", id(self.data)))
         if util.maya_is_loaded():
-            self.add_shots_button.clicked.connect(lambda: self.add_shot_elements_to_scene())
-
+            self.add_shots_button.clicked.connect(lambda: self.populate_scene())
         self.add_shots_button.clicked.connect(lambda: self.accept())
 
     def get_user_input(self):
@@ -491,7 +474,6 @@ class ShotCreator(QDialog, ShotCreatorUI):
         shot_count: int = self.shot_count.value()
         start_shot: int = self.start_shot.value()
         length: int = int(self.shot_length.text())
-
         user_input: list = [shot_count, start_shot, length]
 
         return user_input
@@ -501,13 +483,6 @@ class ShotCreator(QDialog, ShotCreatorUI):
             it doesn't exist. Retrieves user input from the UI and checks which 
             shots already exist in the model. Returns a list of shots to create
             and the length of the shots. """
-
-        # Check if JSON file with shot dictionary exists. 
-        # Creates a new file with an empty dictionary otherwise.
-        util.create_data_file()
-
-        # Now load the data
-        data_dict = self.data_model.load_data()
 
         # Get input from user
         count, start_shot, length = self.get_user_input()
@@ -522,20 +497,20 @@ class ShotCreator(QDialog, ShotCreatorUI):
             new_shots.append(shot_name)
 
         # Do not add shots with same names to the dictionary
-        existing_shots = list(data_dict.keys())
-        shots_to_create = [s for s in new_shots if s not in existing_shots]
+        # The renaming template uses s000, so filter that out
+        existing_shots = list(self.data.keys())
+        shots_to_create = [s for s in new_shots if s not in existing_shots and s != "s000"]
 
         return (shots_to_create, length)
 
-    def add_to_dict(self):
+    def add_new_shots(self):
         """ Creates a new entry in the dictionary for each new shot. """
 
         shot_list, length = self.return_new_shots()
 
         # Add new shots to the dictionary
         for shot in shot_list:
-            if shot != "s000":
-                self.data_model.add_shot(shot, length)
+            data_model.add_shot(shot, length)
 
     def add_layer(self):
         pass
@@ -543,54 +518,34 @@ class ShotCreator(QDialog, ShotCreatorUI):
 
         LayerCreator(None).add_layer_info(data_dict, shot, layer_info)
         
-        self.data_model.save_data()"""
+        self.data.save_data()"""
 
-    @staticmethod
-    def add_shot_elements_to_scene():
-        """ Creates all the Maya nodes for the shots in the model. Checks if any of the objects to be created already
-            exist in the scene and if not, creates the following for each shot:
-            - camera
-            - sets
-            - Sequencer sequence
-            - light groups
-            - master render layer
-        """
+    def populate_scene(self):
+        """ Creates all the Maya nodes for the shots in the model. Checks if any of the 
+            objects  already exist in the scene and if not, creates shot camera, sets, 
+            sequence, light groups and a master render layer. """
+       
+        layer_list = mc.ls(type="renderSetupLayer")  # type: ignore
+        new_shots = self.return_new_shots()[0]
 
-        shot_data = util.create_data_file()
-        
-        try:
-            layer_list = mc.ls(type="renderSetupLayer")  # type: ignore
+        for shot in new_shots:
 
-        except NameError:  # Maya module not imported
-            pass
+            if not util.set_exists(shot):
+                util.create_sets(shot)
+                print(f"Sets for shot {shot} have been created.")
 
-        else:
+            if not util.camera_exists(shot):
+                util.create_camera(shot)
+                print(f"Camera for shot {shot} has been created.")
 
-            if shot_data and shot_data is not None:
+            if not util.sequence_exists(shot):
+                util.create_sequence(shot)
+                print(f"Sequence {shot} has been created.")
 
-                new_shots = list(shot_data.keys())
+            if not util.light_exists(shot):
+                util.create_light_group(shot)
+                print(f"Light group for shot {shot} has been created.")
 
-                for shot in new_shots:
-                    if shot != "s000":
-                        if not util.set_exists(shot):
-                            util.create_sets(shot)
-                            print("Sets for shot " + f'{shot}' + " have been created.")
-
-                        if not util.camera_exists(shot):
-                            util.create_camera(shot)
-                            # TODO: change camera rig template scene
-                            print("Camera for shot " + f'{shot}' + " has been created.")
-
-                        if not util.sequence_exists(shot):
-                            util.create_sequence(shot)
-                            print("Sequence " + f'{shot}' + " has been created.")
-
-                        if not util.light_exists(shot):
-                            util.create_light_group(shot)
-                            print("Light group for shot " + f'{shot}' + " has been created.")
-
-                        master_layer_name = "".join([shot, "master"])
-
-                        if master_layer_name not in layer_list:
-                            LayerCreator(None).create_layer_from_template(shot, "master")
-                            print("Master render layer for " + f'{shot}' + " has been created.")
+            if f"{shot}master" not in layer_list:
+                LayerCreator(None).create_layer_from_template(shot, "master")
+                print(f"Master render layer for {shot} has been created.")

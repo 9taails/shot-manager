@@ -1,21 +1,53 @@
 """
-Module with DataModel class, which handles all logic
-for the data model, like creating, updating or reading 
-data from the JSON file. Central source of the data file.
+Module with DataModel class. It handles all logic and
+methods for the data model manipulation. Central source
+of the data file.
 """
-import json
+
+import json, os
 from source import util # pylint: disable=import-error
+from source.util_paths import Path as paths
+
 
 class DataModel:
-    """ Class handling the data model Shot Manager. """
+    """ Class handling the data model for Shot Manager. """
 
-    def __init__(self, data_file_directory):
+    def __init__(self):
         """ Initializes the DataModel.
             Args:
                 data_file_directory (str): The path to the data file. """
 
-        self.data_file = data_file_directory
+        # Make sure the file exists and create it if it doesn't
+        self.create_data_file()
+        self.data_file = paths.return_data_filepath()
         self.data = self.load_data()
+
+    def create_data_file(self):
+        """ Runs a check for data folder and data file. Creates
+            them if they don't exist. """
+
+        # Check / create directory
+        print("Checking for data folder...")
+        paths.make_dir()
+
+        # Validate the folder has been created
+        data_path = paths.return_sm_dir()
+        if os.path.exists(data_path):
+            print("Data folder exists.")
+
+            # Check / create file
+            print("Checking for data file...")
+            paths.make_file()
+
+            # Validate the file has been created
+            data_path = paths.return_data_filepath()
+            if os.path.exists(data_path):
+                return data_path
+
+        # Return default filepath if folder/file creation
+        # doesn't work.
+        default_path: str = paths.default_path()
+        return default_path
 
     def load_data(self):
         """ Loads the data from the data file.
@@ -48,7 +80,7 @@ class DataModel:
         return False
 
     def return_shot_dict(self, shot:str):
-        """ Checks if a dictionary entry for the given shot exists and 
+        """ Checks if a dictionary entry for the given shot exists and
             returns the dictionary entry.
             Args:
                 shot (str): name of the shot
@@ -67,7 +99,6 @@ class DataModel:
                 shot (str): The name of the shot.
                 field_name (str): The name of the field to update.
                 field_value (str | int | layer): The new value of the field. """
-        self.data = self.load_data()
 
         shot_dict = self.return_shot_dict(shot)
 
@@ -81,9 +112,10 @@ class DataModel:
                 self.save_data()
 
     def add_shot(self, shot_name, length):
-        """ Adds a new shot entry to the data. """
-
-        self.data = self.load_data()
+        """ Adds a new shot entry to the data.
+            Args:
+                shot (str): The name of the shot.
+                length (int): The length of the shot. """
 
         if shot_name in self.data:
             return
@@ -101,7 +133,7 @@ class DataModel:
             "render_layers": [f"{shot_name}master"],
             "layers": {}
         }
-
+        print("DataModel.add_shot ",id(self.data))
         self.save_data()
 
     def layer_dict_exists(self, shot:str, layer:str):
@@ -142,7 +174,6 @@ class DataModel:
                 field_name (str): The name of the field to update.
                 field_value (str | int | layer): The new value of the field. """
 
-        self.data = self.load_data()
         layer_dict = self.return_layer_dict(shot, layer)
 
         if layer_dict:
@@ -161,8 +192,6 @@ class DataModel:
 
     def add_layer(self, shot_name, layer_name, start, end):
         """ Adds a new layer entry to a specific shot. """
-
-        self.data = self.load_data()
 
         if shot_name not in self.data:
             return
@@ -237,3 +266,6 @@ class DataModel:
         # B: AOVs on and added to dictionary - do nothing
         else:
             pass
+
+# Create a single instance of the DataModel class
+data_model = DataModel()

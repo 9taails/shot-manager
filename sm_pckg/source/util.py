@@ -1,3 +1,5 @@
+# type: ignore[reportPossiblyUnboundVariable]
+
 import sys
 import json
 import json.decoder
@@ -13,16 +15,15 @@ from source.util_paths import Path as path
 from source.creators import LayerCreator
 
 try:
-    import maya.cmds as mc  # pyright: ignore
-    import maya.mel as mel  # pyright: ignore
-    import maya.app.renderSetup.model.renderSetup as render  # pyright: ignore
-    import maya.app.renderSetup.model.renderLayer as renderLayer  # pyright: ignore
-    import maya.app.renderSetup.model.override as override  # pyright: ignore
-    import maya.app.renderSetup.model.container as container  # pyright: ignore
-    import maya.app.renderSetup.model.collection as collection  # pyright: ignore
-    import pymel.core as pm  # pyright: ignore
-    from maya import OpenMayaUI as omui  # pyright: ignore
-
+    import maya.cmds as mc
+    import maya.mel as mel
+    import maya.app.renderSetup.model.renderSetup as render
+    import maya.app.renderSetup.model.renderLayer as renderLayer
+    import maya.app.renderSetup.model.override as override
+    import maya.app.renderSetup.model.container as container
+    import maya.app.renderSetup.model.collection as collection
+    import pymel.core as pm
+    from maya import OpenMayaUI as omui
 except ModuleNotFoundError:
     pass
 
@@ -87,7 +88,7 @@ def sequence_exists(shot):
 
 def maya_is_loaded():
     """Returns True if Maya is loaded, else False."""
-    
+
     if "maya" in sys.modules:
         return True
 
@@ -196,85 +197,6 @@ def find_latest(search_dir, stream):
 
         path_to_project = path.sm_folder
         return path_to_project
-
-def create_data_file() -> dict:
-    """ Checks if there is a file containing shot data. Creates it if it doesn't exist.
-    Returns a dictionary or None. """
-
-    # Check if directory exists
-    #If no, make dir
-    #If yes, check for file
-    # Path to .shot_manager folder for the current scene
-    data_folder_dir = path.return_sm_dir()
-
-    # Path to shot_data.json file
-    data_file_dir = path.return_data_filepath()
-
-    # Path to destination folder where .shot_manager should be created
-    dest_dir = path.sm_folder
-
-    # Check if directory exists
-    if not os.path.exists(data_folder_dir):
-        # Directory doesn't exist
-        try:
-            # Try to create the folder
-            os.mkdir(data_folder_dir)
-
-        except PermissionError:
-            os.chmod(dest_dir, 777)
-            os.mkdir(data_folder_dir)
-            os.chmod(data_folder_dir, 777)
-
-        # Run again to create the file
-        finally:
-            create_data_file()
-
-    else:
-        # Directory exists
-        try:
-            # Open existing JSON file
-            with open(data_file_dir, encoding="UTF-8", mode="r") as data_read:
-                shot_dict = json.load(data_read)
-
-        except FileNotFoundError:
-            # File doesn't exist, create an empty dictionary
-            empty_file = dict()
-
-            # Create a new file from the empty dictionary
-            with open(data_file_dir, encoding="UTF-8", mode="w") as data_write:
-                json.dump(empty_file, data_write, indent=4)
-
-            return empty_file
-
-        except json.decoder.JSONDecodeError:
-            # Run recursive - delete old file and try again
-            try:
-                os.remove(data_file_dir)
-                print("File deleted successfully.")
-
-            except OSError as e:
-                print(f"Error deleting the file: {e}. "\
-                      "Defaulting to root directory.")
-                
-                # Create an emoty dictionary
-                empty_file = dict()
-                
-                # Base location
-                root_dir = path.base
-                
-                # Create a new file from the empty dictionary
-                with open(root_dir, encoding="UTF-8", mode="w") as data_write:
-                    json.dump(empty_file, data_write, indent=4)
-                    
-                print(f"File has been created in {root_dir}.")
-                
-                return empty_file
-                  
-            else:
-                create_data_file()
-        
-        else:
-           return shot_dict 
 
 def load_style_sheet():
     """Loads the file with style sheets for the application."""
@@ -1208,10 +1130,11 @@ def aov_override_exists(layer: str, aov: str):
     col = aov_collection_exists(layer, aov)
 
     if col:
-
         # Get collection overrides
-        overrides = col.getOverrides()
-        return overrides if overrides else False
+        overrides: list = col.getOverrides()
+        if overrides:
+            return overrides
+    return {}
 
 def create_aov_collection(layer: str, aov: str, override_value: int):
     """ Create an AOVCollection and AOVChildCollection for the given AOV and override
@@ -1353,7 +1276,14 @@ def toggle_aov_enabled_override(layer: str, aov_group: str, override_value: int)
         else:
             create_crypto_collections(layer, override_value)
 
-def return_icon_tooltip(button_name, status):
+def return_icon_tooltip(button_name:str, status:str):
+    """ Returns the correct icon and tooltip for the button
+        with the given status.
+        Args:
+            button_name (str): Name of the button.
+            status (str): Status can be "on", "mid", "off".
+        Returns:
+            tuple: Contains a QIcon and a tooltip string. """
 
     icon_dict = return_resource_dict("BUTTON_ICONS")
     tooltip_dict = return_resource_dict("TOOLTIPS")

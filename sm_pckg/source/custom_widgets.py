@@ -23,7 +23,7 @@ from PySide6.QtWidgets import (
 
 from source.util_paths import Path as path
 from source import util
-from source.model import DataModel
+from source.model import data_model
 from ui.ui_widgets import UI
 
 
@@ -34,8 +34,8 @@ class ShotManagerDelegate(QStyledItemDelegate):
         super().__init__(parent)
 
         self.data_file = path.return_data_filepath()
-        self.data_model = DataModel(self.data_file)
-
+        self.data_model = data_model.data
+        #print("ShotManagerDelegate", id(self.data_model))
 
     def createEditor(self, parent, option, index):
         """ Creates the editor responsible for drawing the widget delegate.
@@ -55,18 +55,20 @@ class ShotManagerDelegate(QStyledItemDelegate):
             widget = Shot(name)
             widget.setParent(parent)
             # Sync with data
-            data = util.create_data_file().get(name, {})
+            data = self.data_model.get(name, {})
             widget.update_widget_names_values(data)
+            #print("Shot",id(self.data_model))
             return widget
 
         if item_type == "RenderLayer":
             widget = RenderLayer(name)
             widget.setParent(parent)
             # Find parent shot name (stored in UserRole + 2 for layers)
-            index.data(Qt.ItemDataRole.UserRole + 2)
+            shot_name = index.data(Qt.ItemDataRole.UserRole + 2)
             # Sync with data
-            data = util.create_data_file().get(name, {})
-            widget.update_widget_names_values(data)
+            shot_data = self.data_model.get(shot_name, {})
+            layer_data = shot_data.get("layers", {}).get(name, {})
+            widget.update_widget_names_values(layer_data)
             return widget
 
         return super().createEditor(parent, option, index)
@@ -116,6 +118,7 @@ class CustomWidgetBase(QWidget):
         super().__init__(parent)
 
         self.data_file = path.return_data_filepath()  # Path to data file
+        self.data_model = data_model.data
         self.name = name
         self.color = self.return_shot_color()
         self.ui = UI(name, self.color, self)
@@ -222,8 +225,7 @@ class CustomWidgetBase(QWidget):
         """ Reads in the style sheet and applies the correct frame style based
             on visibility of the shot. """
 
-        data = util.create_data_file()
-        shot_color = data[shot]["color"]
+        shot_color = self.data_model[shot]["color"]
         active_color = shot_color + "_active"
 
         if button is not None:
@@ -249,12 +251,12 @@ class CustomWidgetBase(QWidget):
         """ Returns the color assigned to the shot inside the data file. """
 
         try:
-            color: str = util.create_data_file()[self.name].get("color")
+            color: str = self.data_model[self.name].get("color")
             return color
         except KeyError:
             try:
                 name = self.name[:4]
-                color: str = util.create_data_file()[name].get("color")
+                color: str = self.data_model[name].get("color")
                 return color
             except KeyError as e:
                 print(f"KeyError: {e}. Assigning default grey color.")
@@ -266,7 +268,7 @@ class Shot(CustomWidgetBase):
     def __init__(self, shot_name, parent=None):
         super().__init__(shot_name, parent)
 
-        self.data_model = DataModel(self.data_file)
+        self.data_model = data_model
         self.shot_name = shot_name
         self.setObjectName(shot_name)
 
@@ -325,7 +327,8 @@ class Shot(CustomWidgetBase):
         # the resulting set will have only 3 elements, regardless
         # of bhow many render layers there are.
 
-        data = util.create_data_file()
+        data_model.create_data_file()
+        data = data_model.load_data()
         status_set = set()
 
         # Get the correct Shot button instance
@@ -366,7 +369,7 @@ class RenderLayer(CustomWidgetBase):
     def __init__(self, layer_name, parent=None):
         super().__init__(layer_name, parent)
 
-        self.data_model = DataModel(self.data_file)
+        self.data_model = data_model
         self.layer_name = layer_name
         self.shot_name = self.return_shot_name(self)
         self.setObjectName(layer_name)
@@ -475,7 +478,7 @@ class RenderLayer(CustomWidgetBase):
                 layer (str): Name of the layer. """
 
         # Retrieve layer values
-        layer_dict = DataModel(self.data_file).return_layer_dict(shot, layer)
+        layer_dict = data_model.return_layer_dict(shot, layer)
 
         aovmode = layer_dict.get("AOV mode", 0)
 
@@ -492,7 +495,7 @@ class RenderLayer(CustomWidgetBase):
                 layer (str): Name of the layer. """
 
         # Retrieve layer values
-        layer_dict = DataModel(self.data_file).return_layer_dict(shot, layer)
+        layer_dict = data_model.return_layer_dict(shot, layer)
 
         status = layer_dict.get("renderable", 1)
 
